@@ -1,4 +1,4 @@
-# Fast template for developing a new Rust project
+# bsize
 
 [![Crates.io][crates-badge]][crates-url]
 [![Documentation][docs-badge]][docs-url]
@@ -6,24 +6,17 @@
 [![Apache 2.0 licensed][license-badge]][license-url]
 [![Build Status][actions-badge]][actions-url]
 
-[crates-badge]: https://img.shields.io/crates/v/${projectName}.svg
-[crates-url]: https://crates.io/crates/${projectName}
-[docs-badge]: https://img.shields.io/docsrs/${projectName}
-[docs-url]: https://docs.rs/${projectName}
+[crates-badge]: https://img.shields.io/crates/v/bsize.svg
+[crates-url]: https://crates.io/crates/bsize
+[docs-badge]: https://img.shields.io/docsrs/bsize
+[docs-url]: https://docs.rs/bsize
 [msrv-badge]: https://img.shields.io/badge/MSRV-1.85-green?logo=rust
-[license-badge]: https://img.shields.io/crates/l/${projectName}
+[license-badge]: https://img.shields.io/crates/l/bsize
 [license-url]: LICENSE
-[actions-badge]: https://github.com/fast/template/workflows/CI/badge.svg
-[actions-url]: https://github.com/fast/template/actions?query=workflow%3ACI
+[actions-badge]: https://github.com/fast/bsize/workflows/CI/badge.svg
+[actions-url]: https://github.com/fast/bsize/actions?query=workflow%3ACI
 
-Use this repository as a GitHub template to quickly start a new Rust project.
-
-## Getting Started
-
-1. Create a new repository using this template;
-2. Clone your repository and run the bootstrap script: `cargo x bootstrap`;
-3. Cleanup the bootstrap scaffolding: `cargo x bootstrap --cleanup`;
-4. Start building your project!
+This crate provides multiple semantic wrappers for byte size representations.
 
 ## Minimum Rust version policy
 
