@@ -11,17 +11,3 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-//! A template library.
-
-#![cfg_attr(docsrs, feature(doc_cfg))]
-#![deny(missing_docs)]
-#![no_std]
-
-mod ops;
-mod parse;
-mod types;
-mod unsigned;
-
-pub use self::types::BSize;
-pub use self::unsigned::Unsigned;
