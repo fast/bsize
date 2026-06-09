@@ -41,13 +41,13 @@ fn parse_size_decimal() -> u64 {
 }
 
 #[divan::bench]
-fn bsize_binary_exp() -> u64 {
-    BSize::<u64>::parse(black_box(b"1.5e3KiB")).unwrap().0
+fn bsize_binary_decimal() -> u64 {
+    BSize::<u64>::parse(black_box(b"1.5KiB")).unwrap().0
 }
 
 #[divan::bench]
-fn parse_size_binary_exp() -> u64 {
-    parse_size(black_box(b"1.5e3KiB")).unwrap()
+fn parse_size_binary_decimal() -> u64 {
+    parse_size(black_box(b"1.5KiB")).unwrap()
 }
 
 #[divan::bench]

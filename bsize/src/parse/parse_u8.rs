@@ -13,66 +13,142 @@
 // limitations under the License.
 
 use super::ParseError;
-use super::number::parse_number;
+use crate::types::BSize;
+use core::str::FromStr;
 
-impl_parse!(u8, parse_u8);
-impl_parse_number!(u16, multiply_integer_u16, divide_integer_u16);
+impl BSize<u8> {
+    /// Parses a byte size from a byte slice.
+    ///
+    /// The input must end with a `B` or `b` byte suffix. No other unit is
+    /// supported for `u8`.
+    ///
+    /// The numeric part may be an integer or an ordinary decimal number.
+    /// Scientific notation is not supported.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] if the input cannot be parsed as a `u8` byte
+    /// size.
+    pub fn parse(src: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        parse_u8(src.as_ref()).map(BSize)
+    }
+}
+
+impl FromStr for BSize<u8> {
+    type Err = ParseError;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        Self::parse(src.as_bytes())
+    }
+}
 
 fn parse_u8(mut src: &[u8]) -> Result<u8, ParseError> {
     super::strip_b_suffix(&mut src)?;
 
-    parse_number(src, 1_u16, u8::MAX as u16).map(|value| value as u8)
+    parse_number(src)
 }
 
-fn multiply_integer_u16(
-    mantissa: u16,
-    multiply: u16,
-    exponent: u32,
-    max: u16,
-) -> Result<u16, ParseError> {
-    let Some(power) = 10_u16.checked_pow(exponent) else {
-        return Err(ParseError);
-    };
-    let Some(multiply) = multiply.checked_mul(power) else {
-        return Err(ParseError);
-    };
-    let Some(value) = mantissa.checked_mul(multiply) else {
-        return Err(ParseError);
-    };
+fn parse_number(src: &[u8]) -> Result<u8, ParseError> {
+    let mut value = 0_u8;
+    let mut has_digit = false;
+    let mut idx = 0;
 
-    if value > max {
-        Err(ParseError)
-    } else {
+    while idx < src.len() {
+        match src[idx] {
+            digit @ b'0'..=b'9' => {
+                let Some(next) = value
+                    .checked_mul(10)
+                    .and_then(|value| value.checked_add(digit - b'0'))
+                else {
+                    return Err(ParseError);
+                };
+                value = next;
+                has_digit = true;
+            }
+            b'.' => return parse_fraction(src, idx + 1, value, has_digit),
+            b'_' | b' ' => {}
+            _ => return Err(ParseError),
+        }
+
+        idx += 1;
+    }
+
+    if has_digit {
         Ok(value)
+    } else {
+        Err(ParseError)
     }
 }
 
-fn divide_integer_u16(
-    mantissa: u16,
-    multiply: u16,
-    exponent: u32,
-    max: u16,
-) -> Result<u16, ParseError> {
-    if exponent >= 6 {
-        return Ok(0);
+fn parse_fraction(
+    src: &[u8],
+    start: usize,
+    integer: u8,
+    has_integer_digit: bool,
+) -> Result<u8, ParseError> {
+    if !has_integer_digit {
+        return Err(ParseError);
     }
 
-    let product = (mantissa as u32) * (multiply as u32);
-    let power = 10_u32.pow(exponent);
-    let quotient = product / power;
-    let remainder = product % power;
-    let value = if exponent != 0 && remainder >= power / 2 {
-        let Some(value) = quotient.checked_add(1) else {
-            return Err(ParseError);
-        };
-        value
+    let mut fraction = 0_u64;
+    let mut scale = 1_u64;
+    let mut digits = 0_u32;
+    let mut idx = start;
+
+    while idx < src.len() {
+        match src[idx] {
+            digit @ b'0'..=b'9' => {
+                if digits == 19 {
+                    return Err(ParseError);
+                }
+
+                fraction = fraction * 10 + u64::from(digit - b'0');
+                scale *= 10;
+                digits += 1;
+            }
+            b'_' | b' ' => {}
+            _ => return Err(ParseError),
+        }
+
+        idx += 1;
+    }
+
+    let rounded = if digits != 0 && fraction >= scale / 2 {
+        1
     } else {
-        quotient
+        0
     };
 
-    if value > max as u32 {
-        Err(ParseError)
-    } else {
-        Ok(value as u16)
+    integer.checked_add(rounded).ok_or(ParseError)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ParseError;
+    use crate::types::BSize;
+
+    #[test]
+    fn parses_bytes() {
+        assert_eq!(BSize::<u8>::parse(b"255B").unwrap(), BSize(255));
+    }
+
+    #[test]
+    fn parses_fractional_bytes() {
+        assert_eq!(BSize::<u8>::parse(b"25.55B").unwrap(), BSize(26));
+        assert_eq!(BSize::<u8>::parse(b"255.4B").unwrap(), BSize(u8::MAX));
+    }
+
+    #[test]
+    fn rejects_units() {
+        assert_eq!(BSize::<u8>::parse(b"1KB"), Err(ParseError));
+        assert_eq!(BSize::<u8>::parse(b"1eB"), Err(ParseError));
+        assert_eq!(BSize::<u8>::parse(b"1EB"), Err(ParseError));
+    }
+
+    #[test]
+    fn rejects_overflow() {
+        assert_eq!(BSize::<u8>::parse(b"256B"), Err(ParseError));
+        assert_eq!(BSize::<u8>::parse(b"0.001KB"), Err(ParseError));
+        assert_eq!(BSize::<u8>::parse(b"255.5B"), Err(ParseError));
     }
 }

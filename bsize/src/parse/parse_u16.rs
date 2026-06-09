@@ -13,18 +13,67 @@
 // limitations under the License.
 
 use super::ParseError;
-use super::number::parse_number;
+use crate::types::BSize;
+use core::str::FromStr;
 
-impl_parse!(u16, parse_u16);
-impl_parse_number!(u32, multiply_integer_u32, divide_integer_u32);
+impl BSize<u16> {
+    /// Parses a byte size from a byte slice.
+    ///
+    /// The input must end with a `B` or `b` byte suffix. Supported units are
+    /// `B`, `KB`, and `KiB`, case-insensitively.
+    ///
+    /// The numeric part may be an integer or an ordinary decimal number.
+    /// Scientific notation is not supported.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] if the input cannot be parsed as a `u16` byte
+    /// size.
+    pub fn parse(src: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        parse_u16(src.as_ref()).map(BSize)
+    }
+}
+
+impl FromStr for BSize<u16> {
+    type Err = ParseError;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        Self::parse(src.as_bytes())
+    }
+}
 
 #[cfg(target_pointer_width = "16")]
-impl_parse!(usize, parse_usize);
+impl BSize<usize> {
+    /// Parses a byte size from a byte slice.
+    ///
+    /// The input must end with a `B` or `b` byte suffix. On 16-bit targets,
+    /// supported units are `B`, `KB`, and `KiB`, case-insensitively.
+    ///
+    /// The numeric part may be an integer or an ordinary decimal number.
+    /// Scientific notation is not supported.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] if the input cannot be parsed as a `usize` byte
+    /// size.
+    pub fn parse(src: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        parse_usize(src.as_ref()).map(BSize)
+    }
+}
+
+#[cfg(target_pointer_width = "16")]
+impl FromStr for BSize<usize> {
+    type Err = ParseError;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        Self::parse(src.as_bytes())
+    }
+}
 
 fn parse_u16(mut src: &[u8]) -> Result<u16, ParseError> {
     let multiply = parse_unit(&mut src)?;
 
-    parse_number(src, multiply, u16::MAX as u32).map(|value| value as u16)
+    parse_number(src, multiply).map(|value| value as u16)
 }
 
 #[cfg(target_pointer_width = "16")]
@@ -62,55 +111,145 @@ fn parse_unit(src: &mut &[u8]) -> Result<u32, ParseError> {
     Ok(1)
 }
 
-fn multiply_integer_u32(
-    mantissa: u32,
-    multiply: u32,
-    exponent: u32,
-    max: u32,
-) -> Result<u32, ParseError> {
-    let Some(power) = 10_u32.checked_pow(exponent) else {
-        return Err(ParseError);
-    };
-    let Some(multiply) = multiply.checked_mul(power) else {
-        return Err(ParseError);
-    };
-    let Some(value) = mantissa.checked_mul(multiply) else {
-        return Err(ParseError);
-    };
+fn parse_number(src: &[u8], multiply: u32) -> Result<u32, ParseError> {
+    let mut value = 0_u32;
+    let mut has_digit = false;
+    let mut idx = 0;
 
-    if value > max {
+    while idx < src.len() {
+        match src[idx] {
+            digit @ b'0'..=b'9' => {
+                let Some(next) = value
+                    .checked_mul(10)
+                    .and_then(|value| value.checked_add(u32::from(digit - b'0')))
+                else {
+                    return Err(ParseError);
+                };
+                value = next;
+                has_digit = true;
+            }
+            b'.' => return parse_fraction(src, idx + 1, value, has_digit, multiply),
+            b'_' | b' ' => {}
+            _ => return Err(ParseError),
+        }
+
+        idx += 1;
+    }
+
+    if !has_digit {
+        return Err(ParseError);
+    }
+
+    let Some(value) = value.checked_mul(multiply) else {
+        return Err(ParseError);
+    };
+    if value > u32::from(u16::MAX) {
         Err(ParseError)
     } else {
         Ok(value)
     }
 }
 
-fn divide_integer_u32(
-    mantissa: u32,
+fn parse_fraction(
+    src: &[u8],
+    start: usize,
+    integer: u32,
+    has_integer_digit: bool,
     multiply: u32,
-    exponent: u32,
-    max: u32,
 ) -> Result<u32, ParseError> {
-    if exponent >= 13 {
-        return Ok(0);
+    if !has_integer_digit {
+        return Err(ParseError);
     }
 
-    let product = (mantissa as u64) * (multiply as u64);
-    let power = 10_u64.pow(exponent);
-    let quotient = product / power;
-    let remainder = product % power;
-    let value = if exponent != 0 && remainder >= power / 2 {
-        let Some(value) = quotient.checked_add(1) else {
-            return Err(ParseError);
-        };
-        value
+    let Some(base) = integer.checked_mul(multiply) else {
+        return Err(ParseError);
+    };
+    if base > u32::from(u16::MAX) {
+        return Err(ParseError);
+    }
+
+    let mut fraction = 0_u64;
+    let mut scale = 1_u64;
+    let mut digits = 0_u32;
+    let mut idx = start;
+
+    while idx < src.len() {
+        match src[idx] {
+            digit @ b'0'..=b'9' => {
+                if digits == 19 {
+                    return Err(ParseError);
+                }
+
+                fraction = fraction * 10 + u64::from(digit - b'0');
+                scale *= 10;
+                digits += 1;
+            }
+            b'_' | b' ' => {}
+            _ => return Err(ParseError),
+        }
+
+        idx += 1;
+    }
+
+    let product = u128::from(fraction) * u128::from(multiply);
+    let quotient = product / u128::from(scale);
+    let remainder = product % u128::from(scale);
+    let rounded = if digits != 0 && remainder >= u128::from(scale / 2) {
+        quotient + 1
     } else {
         quotient
     };
 
-    if value > max as u64 {
+    let value = u128::from(base) + rounded;
+    if value > u128::from(u16::MAX) {
         Err(ParseError)
     } else {
         Ok(value as u32)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ParseError;
+    use crate::types::BSize;
+
+    #[test]
+    fn parses_bytes() {
+        assert_eq!(BSize::<u16>::parse(b"1 B").unwrap(), BSize(1));
+    }
+
+    #[test]
+    fn parses_units() {
+        assert_eq!(BSize::<u16>::parse(b"1KB").unwrap(), BSize(1_000));
+        assert_eq!(BSize::<u16>::parse(b"1KiB").unwrap(), BSize(1_024));
+        assert_eq!(BSize::<u16>::parse(b"1kb").unwrap(), BSize(1_000));
+        assert_eq!(BSize::<u16>::parse(b"1kib").unwrap(), BSize(1_024));
+        assert_eq!(BSize::<u16>::parse(b"1KIB").unwrap(), BSize(1_024));
+    }
+
+    #[test]
+    fn parses_fractional_units() {
+        assert_eq!(BSize::<u16>::parse(b"65.535KB").unwrap(), BSize(u16::MAX));
+        assert_eq!(BSize::<u16>::parse(b"0.5B").unwrap(), BSize(1));
+        assert_eq!(BSize::<u16>::parse(b"0.4B").unwrap(), BSize(0));
+        assert_eq!(BSize::<u16>::parse(b"65535.4B").unwrap(), BSize(u16::MAX));
+    }
+
+    #[test]
+    fn rejects_unsupported_units() {
+        assert_eq!(BSize::<u16>::parse(b"1MB"), Err(ParseError));
+        assert_eq!(BSize::<u16>::parse(b"1MiB"), Err(ParseError));
+    }
+
+    #[test]
+    fn rejects_overflow() {
+        assert_eq!(BSize::<u16>::parse(b"65535.5B"), Err(ParseError));
+        assert_eq!(BSize::<u16>::parse(b"65.536KB"), Err(ParseError));
+    }
+
+    #[cfg(target_pointer_width = "16")]
+    #[test]
+    fn parses_usize() {
+        assert_eq!(BSize::<usize>::parse(b"1_234B").unwrap(), BSize(1_234));
     }
 }
