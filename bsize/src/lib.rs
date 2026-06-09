@@ -18,11 +18,13 @@
 #![deny(missing_docs)]
 #![no_std]
 
+mod display;
 mod ops;
 mod parse;
 mod types;
 mod unsigned;
 
+pub use self::display::Display;
 pub use self::parse::ParseError;
 pub use self::types::BSize;
 pub use self::unsigned::Unsigned;
