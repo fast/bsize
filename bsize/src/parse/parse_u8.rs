@@ -19,12 +19,6 @@ use core::str::FromStr;
 impl BSize<u8> {
     /// Parses a byte size from a byte slice.
     ///
-    /// The input must end with a `B` or `b` byte suffix. No other unit is
-    /// supported for `u8`.
-    ///
-    /// The numeric part may be an integer or an ordinary decimal number.
-    /// Scientific notation is not supported.
-    ///
     /// # Errors
     ///
     /// Returns [`ParseError`] if the input cannot be parsed as a `u8` byte
@@ -44,48 +38,42 @@ impl FromStr for BSize<u8> {
 }
 
 fn parse_u8(mut src: &[u8]) -> Result<u8, ParseError> {
-    super::strip_b_suffix(&mut src)?;
+    let multiply = super::strip_unit_suffix(&mut src)?;
+    if src.is_empty() {
+        return Err(ParseError::Empty);
+    }
 
     let mut value = 0u8;
-    let mut valid = false;
-
-    let len = src.len();
-    for idx in 0..len {
+    for idx in 0..src.len() {
         match src[idx] {
             b'_' => {}
             b'.' => {
-                if idx + 1 < len {
-                    match src[idx + 1] {
-                        b'0'..=b'4' => {}
-                        b'5'..=b'9' => {
-                            value = value.checked_add(1).ok_or(ParseError(()))?;
+                let mut frac = 1u64;
+                for idx in idx + 1..src.len() {
+                    match src[idx] {
+                        b'_' => {}
+                        n @ b'0'..=b'9' => {
+                            frac *= 10;
+                            let n = (n - b'0') as u64;
+                            let n = n.checked_mul(multiply).ok_or(ParseError::PosOverflow)?;
+                            // let n = n.div_euclid(division);
                         }
-                        _ => return Err(ParseError(())),
-                    }
-                    valid = true;
-                }
-
-                for idx in idx + 2..len {
-                    if !matches!(src[idx], b'_' | b'0'..=b'9') {
-                        return Err(ParseError(()));
+                        _ => return Err(ParseError::InvalidDigit),
                     }
                 }
-                break;
             }
-            digit @ b'0'..=b'9' => {
-                value = value.checked_mul(10).ok_or(ParseError(()))?;
-                value = value.checked_add(digit - b'0').ok_or(ParseError(()))?;
-                valid = true;
+            n @ b'0'..=b'9' => {
+                value = value.checked_mul(10).ok_or(ParseError::PosOverflow)?;
+                let n = (n - b'0') as u64;
+                let n = n.checked_mul(multiply).ok_or(ParseError::PosOverflow)?;
+                let n = u8::try_from(n).map_err(|_| ParseError::PosOverflow)?;
+                value = value.checked_add(n).ok_or(ParseError::PosOverflow)?;
             }
-            _ => return Err(ParseError(())),
+            _ => return Err(ParseError::InvalidDigit),
         }
     }
 
-    if valid {
-        Ok(value)
-    } else {
-        Err(ParseError(()))
-    }
+    Ok(value)
 }
 
 #[cfg(test)]
@@ -95,6 +83,7 @@ mod tests {
     #[test]
     fn parses_bytes() {
         assert_eq!(BSize::<u8>::parse(b"255B").unwrap(), BSize::<u8>(255));
+        assert_eq!(BSize::<u8>::parse(b"255 B").unwrap(), BSize::<u8>(255));
     }
 
     #[test]
@@ -104,16 +93,12 @@ mod tests {
     }
 
     #[test]
-    fn rejects_units() {
-        BSize::<u8>::parse(b"1KB").unwrap_err();
-        BSize::<u8>::parse(b"1eB").unwrap_err();
-        BSize::<u8>::parse(b"1EB").unwrap_err();
-    }
-
-    #[test]
     fn rejects_overflow() {
-        BSize::<u8>::parse(b"256B").unwrap_err();
-        BSize::<u8>::parse(b"0.001KB").unwrap_err();
-        BSize::<u8>::parse(b"255.5B").unwrap_err();
+        assert_eq!(BSize::<u8>::parse(b"1KB"), Err(ParseError::PosOverflow));
+        assert_eq!(BSize::<u8>::parse(b"1eB"), Err(ParseError::PosOverflow));
+        assert_eq!(BSize::<u8>::parse(b"1EB"), Err(ParseError::PosOverflow));
+        assert_eq!(BSize::<u8>::parse(b"256B"), Err(ParseError::PosOverflow));
+        assert_eq!(BSize::<u8>::parse(b"0.001KB"), Err(ParseError::PosOverflow));
+        assert_eq!(BSize::<u8>::parse(b"255.5B"), Err(ParseError::PosOverflow));
     }
 }
