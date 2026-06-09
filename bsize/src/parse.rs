@@ -199,14 +199,17 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+
     use super::*;
 
     fn assert_parse_ok(input: &str, expected: u64) {
-        assert_eq!(
-            input.parse::<BSize<u64>>(),
-            Ok(BSize::b(expected)),
-            "input: {input:?}",
-        );
+        let actual = BSize::<u64>::from_str(input).unwrap();
+        let expected = BSize::<u64>(expected);
+        assert_eq!(actual, expected, "input: {input:?}");
+
+        let round_trip = actual.to_string().parse::<BSize<u64>>().unwrap();
+        assert_eq!(round_trip, expected, "input: {input:?}");
     }
 
     fn assert_parse_err(input: &str, expected: ParseError) {
