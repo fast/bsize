@@ -18,7 +18,74 @@
 
 This crate provides multiple semantic wrappers and utilities for byte size representations.
 
-## Minimum Rust version policy
+## Why Yet Another Byte Size Crate?
+
+There are already several crates that provide functionality for parsing, formatting, and/or representing byte sizes.
+
+A new crate would always be doubted as nothing more than another competing standard.
+
+[![Competing Standards](https://imgs.xkcd.com/comics/standards.png)](https://xkcd.com/927/)
+
+This section shares the rationale behind this crate and how it differs from existing ones.
+
+### `humansize`
+
+The most commonly used crate for formatting byte sizes is [`humansize`](https://crates.io/crates/humansize). It provides a `format_size`/`format_size_i` function that formats a byte size into a human-readable string.
+
+This function works well. However, when you want to define a struct that represents a byte size, `humansize` does not provide a type for that.
+
+I have a large set of code looking like this:
+
+```rust
+const BASE_BLOB_INDEX_SIZE: usize = 4 * 1024; // 4 KiB
+const BASE_BLOCK_SIZE: usize = 16 * 1024 * 1024; // 16 MiB
+const RESERVED_MEMORY: usize = 256 * 1024 * 1024; // 256 MiB
+const RESULT_SIZE_LIMIT: usize = 8 * 1024 * 1024 * 1024; // 8 GiB
+```
+
+I want them to be:
+
+```rust
+const BASE_BLOB_INDEX_SIZE: BSize<usize> = BSize::kib(4);
+const BASE_BLOCK_SIZE: BSize<usize> = BSize::mib(16);
+const RESERVED_MEMORY: BSize<usize> = BSize::mib(256);
+const RESULT_SIZE_LIMIT: BSize<usize> = BSize::gib(8);
+```
+
+So you don't have to multiply the numbers by hand and rely on comments to indicate the units. This also makes it easier to change the units later if needed.
+
+What's more, when you want to parse a byte size from a string, `humansize` does not provide a function for that either.
+
+### `parse-size`
+
+The [`parse-size`](https://crates.io/crates/parse-size) crate provides a `parse_size` function that parses a byte size from a string.
+
+Similarly, when you need to define a struct that represents a byte size, or when you want to format a byte size into a human-readable string, `parse-size` does not provide functionalities for either of those.
+
+Besides, `parse-size` supports parsing sizes that has an exponential notation, such as `1e6` for 1 million bytes. This crate does not support that in the `FromStr::from_str` implementation, as it is not a common way to represent byte sizes. If it turns out to be useful, this crate may add a standalone function for that in the future.
+
+### `bytesize`
+
+The [`bytesize`](https://crates.io/crates/bytesize) crate provides a `ByteSize` struct that represents a byte size and implements `Display` and `FromStr` for it.
+
+I was more than happy to try `bytesize` at first. However, I found that it does not provide a way to specify the underlying integer type for the byte size. It uses `u64` internally, while most of the constants shown above are of type `usize`. This means that I have to convert between `u64` and `usize` frequently, which is not ideal. See [this issue](https://github.com/bytesize-rs/bytesize/issues/135) for more details.
+
+What's more, to support calculations between `BSize` and numeric types, this crate simply implements a `BSize::with` function and avoids implementing arithmetic traits. The latter would cause confusions like what result type should be used for `ByteSize + u64`. However, `BSize` implements arithmetic traits for calculations between `BSize` and `BSize`, which is more intuitive and less error-prone.
+
+```rust
+let result = ByteSize::kib(4) + 64; // Is the result type ByteSize or u64? Why?
+let result = BSize::<u64>::kib(4).with(|b| b + 64); // Clearly the result type is BSize.
+let result = BSize::<u64>::kib(4).0 + 64; // Clearly the result type is u64.
+```
+
+There is no `Unit` as well. To obtain a constant for a specific unit, you can use `BSize::<u64>::kib(1).0` and this can be resolved at compile time.
+
+Finally, the following issues in `bytesize` have been resolved in this crate:
+
+* [Unit measurements should not convert from XiB to XB](https://github.com/bytesize-rs/bytesize/issues/16): In `bsize`, the default Display implementation uses `B` always. This forces the user to customize the formatting if they want by calling `BSize::display`, and thus it reduces confusion on APIs.
+* [Support for no-alloc environments](https://github.com/bytesize-rs/bytesize/issues/140): In `bsize`, both parsing and formatting functionalities are available in no-alloc environments.
+
+## Minimum Rust Version Policy
 
 This crate's minimum supported `rustc` version is `1.85.0`.
 
