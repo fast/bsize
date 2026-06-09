@@ -31,13 +31,5 @@ rust-version.workspace = true
 [features]
 default = []
 
-[dev-dependencies]
-divan = "0.1.21"
-parse-size = "1.1.0"
-
-[[bench]]
-name = "parse"
-harness = false
-
 [lints]
 workspace = true
