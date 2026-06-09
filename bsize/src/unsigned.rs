@@ -20,7 +20,6 @@ mod private {
     impl Sealed for u16 {}
     impl Sealed for u32 {}
     impl Sealed for u64 {}
-    impl Sealed for u128 {}
 }
 
 /// A marker trait for all unsigned integers.
@@ -31,4 +30,3 @@ impl Unsigned for u8 {}
 impl Unsigned for u16 {}
 impl Unsigned for u32 {}
 impl Unsigned for u64 {}
-impl Unsigned for u128 {}

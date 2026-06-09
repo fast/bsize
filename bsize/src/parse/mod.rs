@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod parse_u128;
 mod parse_u16;
 mod parse_u32;
 mod parse_u64;
@@ -26,34 +25,37 @@ use core::fmt;
 pub enum ParseError {
     /// The input contains no number.
     Empty,
-    /// The input contains an invalid byte.
-    InvalidDigit,
+    /// The input contains malformed bytes.
+    Malformed,
     /// The parsed byte count is too large for the target integer type.
-    PosOverflow,
+    Overflow,
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Empty => "cannot parse integer from empty string",
-            Self::InvalidDigit => "invalid digit found in string",
-            Self::PosOverflow => "number too large to fit in target type",
+            Self::Malformed => "malformed bytes found in string",
+            Self::Overflow => "number too large to fit in target type",
         })
     }
 }
 
 impl core::error::Error for ParseError {}
 
-fn strip_unit_suffix(src: &mut &[u8]) -> Result<u64, ParseError> {
-    if let [init @ .., b'b' | b'B'] = src {
-        *src = init;
-    };
-
+fn strip_unit_suffix(src: &mut &str) -> Result<u64, ParseError> {
+    let mut strip = src.len();
     let mut multiply = 1;
 
-    if let [init @ .., b'i' | b'I'] = src {
-        *src = init;
-        if let [init @ .., prefix] = src {
+    let mut unit = src.as_bytes();
+    if let [init @ .., b'b' | b'B'] = unit {
+        unit = init;
+        strip -= 1;
+    };
+    if let [init @ .., b'i' | b'I'] = unit {
+        unit = init;
+        strip -= 1;
+        if let [.., prefix] = unit {
             match prefix {
                 b'k' | b'K' => multiply = 1 << 10,
                 b'm' | b'M' => multiply = 1 << 20,
@@ -61,17 +63,15 @@ fn strip_unit_suffix(src: &mut &[u8]) -> Result<u64, ParseError> {
                 b't' | b'T' => multiply = 1 << 40,
                 b'p' | b'P' => multiply = 1 << 50,
                 b'e' | b'E' => multiply = 1 << 60,
-                _ => return Err(ParseError::InvalidDigit),
+                _ => return Err(ParseError::Malformed),
             }
-
-            *src = init;
         } else {
             // [iI][bB] is not a valid suffix.
-            return Err(ParseError::InvalidDigit);
+            return Err(ParseError::Malformed);
         }
     } else {
-        if let [init @ .., prefix] = src {
-            'skip: {
+        if let [.., prefix] = unit {
+            'outer: {
                 match prefix {
                     b'k' | b'K' => multiply = 1_000,
                     b'm' | b'M' => multiply = 1_000_000,
@@ -79,16 +79,13 @@ fn strip_unit_suffix(src: &mut &[u8]) -> Result<u64, ParseError> {
                     b't' | b'T' => multiply = 1_000_000_000_000,
                     b'p' | b'P' => multiply = 1_000_000_000_000_000,
                     b'e' | b'E' => multiply = 1_000_000_000_000_000_000,
-                    _ => break 'skip,
+                    _ => break 'outer,
                 }
-                *src = init;
+                strip -= 1;
             }
         }
     }
 
-    while let [init @ .., b' '] = src {
-        *src = init;
-    }
-
+    *src = &src[..strip];
     Ok(multiply)
 }

@@ -54,7 +54,7 @@ macro_rules! impl_ops {
     };
 }
 
-impl_ops!(u8, u16, u32, u64, u128, usize);
+impl_ops!(u8, u16, u32, u64, usize);
 
 #[cfg(test)]
 mod tests {
@@ -66,7 +66,6 @@ mod tests {
         assert_eq!((BSize::<u16>(3) + BSize(5)).0, 8);
         assert_eq!((BSize::<u32>(3) + BSize(5)).0, 8);
         assert_eq!((BSize::<u64>(3) + BSize(5)).0, 8);
-        assert_eq!((BSize::<u128>(3) + BSize(5)).0, 8);
         assert_eq!((BSize::<usize>(3) + BSize(5)).0, 8);
     }
 
@@ -83,7 +82,6 @@ mod tests {
         assert_eq!((BSize::<u16>(8) - BSize(5)).0, 3);
         assert_eq!((BSize::<u32>(8) - BSize(5)).0, 3);
         assert_eq!((BSize::<u64>(8) - BSize(5)).0, 3);
-        assert_eq!((BSize::<u128>(8) - BSize(5)).0, 3);
         assert_eq!((BSize::<usize>(8) - BSize(5)).0, 3);
     }
 

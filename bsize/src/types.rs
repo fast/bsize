@@ -93,21 +93,6 @@ impl_constructors!(u64 => {
     eib = 1_152_921_504_606_846_976,
 });
 
-impl_constructors!(u128 => {
-    kb = 1_000,
-    kib = 1_024,
-    mb = 1_000_000,
-    mib = 1_048_576,
-    gb = 1_000_000_000,
-    gib = 1_073_741_824,
-    tb = 1_000_000_000_000,
-    tib = 1_099_511_627_776,
-    pb = 1_000_000_000_000_000,
-    pib = 1_125_899_906_842_624,
-    eb = 1_000_000_000_000_000_000,
-    eib = 1_152_921_504_606_846_976,
-});
-
 impl_constructors!(usize => {
     kb = 1_000,
     kib = 1_024,
@@ -177,21 +162,6 @@ impl_accessors!(u64 => {
     as_eib = 1_152_921_504_606_846_976u64 => "exbibytes",
 });
 
-impl_accessors!(u128 => {
-    as_kb = 1_000u128 => "kilobytes",
-    as_kib = 1_024u128 => "kibibytes",
-    as_mb = 1_000_000u128 => "megabytes",
-    as_mib = 1_048_576u128 => "mebibytes",
-    as_gb = 1_000_000_000u128 => "gigabytes",
-    as_gib = 1_073_741_824u128 => "gibibytes",
-    as_tb = 1_000_000_000_000u128 => "terabytes",
-    as_tib = 1_099_511_627_776u128 => "tebibytes",
-    as_pb = 1_000_000_000_000_000u128 => "petabytes",
-    as_pib = 1_125_899_906_842_624u128 => "pebibytes",
-    as_eb = 1_000_000_000_000_000_000u128 => "exabytes",
-    as_eib = 1_152_921_504_606_846_976u128 => "exbibytes",
-});
-
 impl_accessors!(usize => {
     as_kb = 1_000usize => "kilobytes",
     as_kib = 1_024usize => "kibibytes",
@@ -235,7 +205,6 @@ mod tests {
         assert_eq!(BSize::<u16>::default(), BSize::b(0));
         assert_eq!(BSize::<u32>::default(), BSize::b(0));
         assert_eq!(BSize::<u64>::default(), BSize::b(0));
-        assert_eq!(BSize::<u128>::default(), BSize::b(0));
         assert_eq!(BSize::<usize>::default(), BSize::b(0));
     }
 
@@ -315,45 +284,6 @@ mod tests {
         assert_close(
             BSize::<u64>::b(bytes).as_eib(),
             (bytes as f64) / (eib as f64),
-        );
-    }
-
-    #[test]
-    fn constructs_u128_units() {
-        assert_eq!(BSize::<u128>::eb(20).0, 20_000_000_000_000_000_000);
-        assert_eq!(BSize::<u128>::eib(20).0, 23_058_430_092_136_939_520);
-    }
-
-    #[test]
-    fn returns_u128_units() {
-        assert_close(BSize::<u128>::eib(20).as_eib(), 20.0);
-    }
-
-    #[test]
-    fn returns_large_fractional_u128_units() {
-        let bytes = (1_u128 << 80) + (1_u128 << 40);
-        let eb = 1_000_000_000_000_000_000u128;
-        let eib = 1_152_921_504_606_846_976u128;
-
-        assert_close(
-            BSize::<u128>::b(bytes).as_eb(),
-            (bytes as f64) / (eb as f64),
-        );
-        assert_close(
-            BSize::<u128>::b(bytes).as_eib(),
-            (bytes as f64) / (eib as f64),
-        );
-    }
-
-    #[test]
-    fn returns_u128_units_with_f64_precision() {
-        let bytes = (1_u128 << 100) + 123_456_789;
-        let eib = 1_152_921_504_606_846_976u128;
-
-        assert_eq!(bytes as f64, (1_u128 << 100) as f64);
-        assert_close(
-            BSize::<u128>::b(bytes).as_eib(),
-            ((1_u128 << 100) as f64) / (eib as f64),
         );
     }
 
