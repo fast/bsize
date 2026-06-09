@@ -15,8 +15,8 @@
 use core::fmt;
 
 /// The error returned when parsing a byte size fails.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ParseError;
+#[derive(Debug, Clone)]
+pub struct ParseError(());
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -33,14 +33,12 @@ mod parse_u64;
 mod parse_u8;
 
 fn strip_b_suffix(src: &mut &[u8]) -> Result<(), ParseError> {
-    let Some((&suffix, before_b)) = src.split_last() else {
-        return Err(ParseError);
-    };
-    if !suffix.eq_ignore_ascii_case(&b'B') {
-        return Err(ParseError);
+    *src = src.trim_ascii();
+    let (suffix, before_b) = src.split_last().ok_or(ParseError(()))?;
+    if suffix.to_ascii_uppercase() != b'B' {
+        return Err(ParseError(()));
     }
-
-    *src = before_b;
+    *src = before_b.trim_ascii_end();
     Ok(())
 }
 

@@ -30,7 +30,8 @@ impl BSize<u8> {
     /// Returns [`ParseError`] if the input cannot be parsed as a `u8` byte
     /// size.
     pub fn parse(src: impl AsRef<[u8]>) -> Result<Self, ParseError> {
-        parse_u8(src.as_ref()).map(BSize)
+        let bytes = src.as_ref();
+        parse_u8(bytes).map(BSize)
     }
 }
 
@@ -45,110 +46,74 @@ impl FromStr for BSize<u8> {
 fn parse_u8(mut src: &[u8]) -> Result<u8, ParseError> {
     super::strip_b_suffix(&mut src)?;
 
-    parse_number(src)
-}
+    let mut value = 0u8;
+    let mut valid = false;
 
-fn parse_number(src: &[u8]) -> Result<u8, ParseError> {
-    let mut value = 0_u8;
-    let mut has_digit = false;
-    let mut idx = 0;
-
-    while idx < src.len() {
+    let len = src.len();
+    for idx in 0..len {
         match src[idx] {
-            digit @ b'0'..=b'9' => {
-                let Some(next) = value
-                    .checked_mul(10)
-                    .and_then(|value| value.checked_add(digit - b'0'))
-                else {
-                    return Err(ParseError);
-                };
-                value = next;
-                has_digit = true;
-            }
-            b'.' => return parse_fraction(src, idx + 1, value, has_digit),
-            b'_' | b' ' => {}
-            _ => return Err(ParseError),
-        }
-
-        idx += 1;
-    }
-
-    if has_digit {
-        Ok(value)
-    } else {
-        Err(ParseError)
-    }
-}
-
-fn parse_fraction(
-    src: &[u8],
-    start: usize,
-    integer: u8,
-    has_integer_digit: bool,
-) -> Result<u8, ParseError> {
-    if !has_integer_digit {
-        return Err(ParseError);
-    }
-
-    let mut fraction = 0_u64;
-    let mut scale = 1_u64;
-    let mut digits = 0_u32;
-    let mut idx = start;
-
-    while idx < src.len() {
-        match src[idx] {
-            digit @ b'0'..=b'9' => {
-                if digits == 19 {
-                    return Err(ParseError);
+            b'_' => {}
+            b'.' => {
+                if idx + 1 < len {
+                    match src[idx + 1] {
+                        b'0'..=b'4' => {}
+                        b'5'..=b'9' => {
+                            value = value.checked_add(1).ok_or(ParseError(()))?;
+                        }
+                        _ => return Err(ParseError(())),
+                    }
+                    valid = true;
                 }
 
-                fraction = fraction * 10 + u64::from(digit - b'0');
-                scale *= 10;
-                digits += 1;
+                for idx in idx + 2..len {
+                    if !matches!(src[idx], b'_' | b'0'..=b'9') {
+                        return Err(ParseError(()));
+                    }
+                }
+                break;
             }
-            b'_' | b' ' => {}
-            _ => return Err(ParseError),
+            digit @ b'0'..=b'9' => {
+                value = value.checked_mul(10).ok_or(ParseError(()))?;
+                value = value.checked_add(digit - b'0').ok_or(ParseError(()))?;
+                valid = true;
+            }
+            _ => return Err(ParseError(())),
         }
-
-        idx += 1;
     }
 
-    let rounded = if digits != 0 && fraction >= scale / 2 {
-        1
+    if valid {
+        Ok(value)
     } else {
-        0
-    };
-
-    integer.checked_add(rounded).ok_or(ParseError)
+        Err(ParseError(()))
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::ParseError;
-    use crate::types::BSize;
+    use super::*;
 
     #[test]
     fn parses_bytes() {
-        assert_eq!(BSize::<u8>::parse(b"255B").unwrap(), BSize(255));
+        assert_eq!(BSize::<u8>::parse(b"255B").unwrap(), BSize::<u8>(255));
     }
 
     #[test]
     fn parses_fractional_bytes() {
-        assert_eq!(BSize::<u8>::parse(b"25.55B").unwrap(), BSize(26));
-        assert_eq!(BSize::<u8>::parse(b"255.4B").unwrap(), BSize(u8::MAX));
+        assert_eq!(BSize::<u8>::parse(b"25.55B").unwrap(), BSize::<u8>(26));
+        assert_eq!(BSize::<u8>::parse(b"255.4B").unwrap(), BSize::<u8>(u8::MAX));
     }
 
     #[test]
     fn rejects_units() {
-        assert_eq!(BSize::<u8>::parse(b"1KB"), Err(ParseError));
-        assert_eq!(BSize::<u8>::parse(b"1eB"), Err(ParseError));
-        assert_eq!(BSize::<u8>::parse(b"1EB"), Err(ParseError));
+        BSize::<u8>::parse(b"1KB").unwrap_err();
+        BSize::<u8>::parse(b"1eB").unwrap_err();
+        BSize::<u8>::parse(b"1EB").unwrap_err();
     }
 
     #[test]
     fn rejects_overflow() {
-        assert_eq!(BSize::<u8>::parse(b"256B"), Err(ParseError));
-        assert_eq!(BSize::<u8>::parse(b"0.001KB"), Err(ParseError));
-        assert_eq!(BSize::<u8>::parse(b"255.5B"), Err(ParseError));
+        BSize::<u8>::parse(b"256B").unwrap_err();
+        BSize::<u8>::parse(b"0.001KB").unwrap_err();
+        BSize::<u8>::parse(b"255.5B").unwrap_err();
     }
 }
