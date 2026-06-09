@@ -200,7 +200,7 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
 #[cfg(test)]
 mod tests {
     extern crate alloc;
-    
+
     use alloc::string::ToString;
 
     use super::*;
