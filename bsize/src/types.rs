@@ -29,7 +29,7 @@ impl<T: Unsigned + fmt::Debug> fmt::Debug for BSize<T> {
 
 impl<T: Unsigned + fmt::Display> fmt::Display for BSize<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} bytes", self.0)
+        write!(f, "{} B", self.0)
     }
 }
 
