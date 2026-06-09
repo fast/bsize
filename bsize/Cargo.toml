@@ -14,7 +14,12 @@
 
 [package]
 name = "bsize"
-version = "0.0.1"
+version = "0.1.0-rc.1"
+
+categories = ["development-tools", "no-std", "value-formatting"]
+description = "Semantic wrappers and utilities for byte size representations."
+documentation = "https://docs.rs/bsize"
+keywords = ["bytes", "size", "humanize", "format", "parser"]
 
 edition.workspace = true
 homepage.workspace = true
@@ -23,7 +28,8 @@ readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-[dependencies]
+[features]
+default = []
 
 [lints]
 workspace = true

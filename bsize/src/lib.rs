@@ -16,8 +16,11 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(missing_docs)]
+#![no_std]
 
-/// A placeholder function.
-pub fn hello() {
-    println!("Hello, world!");
-}
+mod ops;
+mod types;
+mod unsigned;
+
+pub use self::types::BSize;
+pub use self::unsigned::Unsigned;

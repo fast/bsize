@@ -1,4 +1,4 @@
-# bsize
+# BSize
 
 [![Crates.io][crates-badge]][crates-url]
 [![Documentation][docs-badge]][docs-url]
@@ -16,7 +16,7 @@
 [actions-badge]: https://github.com/fast/bsize/workflows/CI/badge.svg
 [actions-url]: https://github.com/fast/bsize/actions?query=workflow%3ACI
 
-This crate provides multiple semantic wrappers for byte size representations.
+This crate provides multiple semantic wrappers and utilities for byte size representations.
 
 ## Minimum Rust version policy
 
