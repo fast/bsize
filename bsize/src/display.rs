@@ -136,13 +136,15 @@ impl_display!(u8, u16, u32, u64, usize);
 
 #[cfg(test)]
 mod tests {
+    extern crate alloc;
+
     use alloc::format;
     use alloc::string::ToString;
 
     use super::*;
 
     #[test]
-    fn test_formatting_equivalence() {
+    fn test_formatting_snapshots() {
         let test_values = [
             0u64,
             1,
@@ -164,63 +166,60 @@ mod tests {
             u64::MAX,
         ];
 
+        let mut results = alloc::string::String::new();
         for &bytes in &test_values {
             for mode in [DisplayMode::Binary, DisplayMode::Decimal] {
-                let display = Display {
+                let disp = Display {
                     size: bytes,
                     mode: mode.clone(),
                 };
-                let formatted_new = display.to_string();
-
-                let formatted_old = format_old(bytes, &mode);
-
-                assert_eq!(
-                    formatted_new, formatted_old,
-                    "formatting mismatch for bytes={bytes} in mode={mode:?}",
-                );
+                let formatted = disp.to_string();
+                let mode_str = match mode {
+                    DisplayMode::Binary => "Binary",
+                    DisplayMode::Decimal => "Decimal",
+                };
+                let line = format!("{bytes:>20} ({mode_str:<7}) => {formatted}\n");
+                results.push_str(&line);
             }
         }
-    }
 
-    fn format_old(bytes: u64, mode: &DisplayMode) -> alloc::string::String {
-        let unit = match mode {
-            DisplayMode::Binary => 1024,
-            DisplayMode::Decimal => 1000,
-        };
-
-        let unit_prefixes = match mode {
-            DisplayMode::Binary => b"KMGTPE",
-            DisplayMode::Decimal => b"kMGTPE",
-        };
-        let unit_suffix = match mode {
-            DisplayMode::Binary => "iB",
-            DisplayMode::Decimal => "B",
-        };
-        let unit_separator = " ";
-        let precision = 1;
-
-        if bytes < unit {
-            format!("{bytes}{unit_separator}B")
-        } else {
-            let size = bytes as f64;
-
-            let mut ideal_prefix = 0usize;
-            let mut ideal_size = size;
-            loop {
-                ideal_prefix += 1;
-                ideal_size /= unit as f64;
-
-                if ideal_size < unit as f64 {
-                    break;
-                }
-            }
-            let exp = ideal_prefix;
-            let unit_prefix = unit_prefixes[exp - 1] as char;
-
-            format!(
-                "{:.precision$}{unit_separator}{unit_prefix}{unit_suffix}",
-                size / unit.pow(exp as u32) as f64,
-            )
-        }
+        insta::assert_snapshot!(results, @"
+                           0 (Binary ) => 0 B
+                           0 (Decimal) => 0 B
+                           1 (Binary ) => 1 B
+                           1 (Decimal) => 1 B
+                         500 (Binary ) => 500 B
+                         500 (Decimal) => 500 B
+                         999 (Binary ) => 999 B
+                         999 (Decimal) => 999 B
+                        1000 (Binary ) => 1000 B
+                        1000 (Decimal) => 1.0 kB
+                        1023 (Binary ) => 1023 B
+                        1023 (Decimal) => 1.0 kB
+                        1024 (Binary ) => 1.0 KiB
+                        1024 (Decimal) => 1.0 kB
+                        1025 (Binary ) => 1.0 KiB
+                        1025 (Decimal) => 1.0 kB
+                        1500 (Binary ) => 1.5 KiB
+                        1500 (Decimal) => 1.5 kB
+                        2048 (Binary ) => 2.0 KiB
+                        2048 (Decimal) => 2.0 kB
+                     1000000 (Binary ) => 976.6 KiB
+                     1000000 (Decimal) => 1.0 MB
+                     1048576 (Binary ) => 1.0 MiB
+                     1048576 (Decimal) => 1.0 MB
+                   987654321 (Binary ) => 941.9 MiB
+                   987654321 (Decimal) => 987.7 MB
+               1099511627776 (Binary ) => 1.0 TiB
+               1099511627776 (Decimal) => 1.1 TB
+            1125899906842624 (Binary ) => 1.0 PiB
+            1125899906842624 (Decimal) => 1.1 PB
+         1152921504606846976 (Binary ) => 1.0 EiB
+         1152921504606846976 (Decimal) => 1.2 EB
+        18446744073709551614 (Binary ) => 16.0 EiB
+        18446744073709551614 (Decimal) => 18.4 EB
+        18446744073709551615 (Binary ) => 16.0 EiB
+        18446744073709551615 (Decimal) => 18.4 EB
+        ");
     }
 }
