@@ -111,7 +111,7 @@ impl fmt::Display for Display {
             write!(
                 f,
                 "{:.precision$}{unit_separator}{unit_prefix}{unit_suffix}",
-                size / unit.pow(exp as u32) as f64,
+                ideal_size,
             )?;
         }
 
@@ -133,3 +133,94 @@ macro_rules! impl_display {
 }
 
 impl_display!(u8, u16, u32, u64, usize);
+
+#[cfg(test)]
+mod tests {
+    use alloc::format;
+    use alloc::string::ToString;
+
+    use super::*;
+
+    #[test]
+    fn test_formatting_equivalence() {
+        let test_values = [
+            0u64,
+            1,
+            500,
+            999,
+            1000,
+            1023,
+            1024,
+            1025,
+            1500,
+            2048,
+            1000000,
+            1048576,
+            987654321,
+            1099511627776,
+            1125899906842624,
+            1152921504606846976,
+            u64::MAX - 1,
+            u64::MAX,
+        ];
+
+        for &bytes in &test_values {
+            for mode in [DisplayMode::Binary, DisplayMode::Decimal] {
+                let display = Display {
+                    size: bytes,
+                    mode: mode.clone(),
+                };
+                let formatted_new = display.to_string();
+
+                let formatted_old = format_old(bytes, &mode);
+
+                assert_eq!(
+                    formatted_new, formatted_old,
+                    "formatting mismatch for bytes={bytes} in mode={mode:?}",
+                );
+            }
+        }
+    }
+
+    fn format_old(bytes: u64, mode: &DisplayMode) -> alloc::string::String {
+        let unit = match mode {
+            DisplayMode::Binary => 1024,
+            DisplayMode::Decimal => 1000,
+        };
+
+        let unit_prefixes = match mode {
+            DisplayMode::Binary => b"KMGTPE",
+            DisplayMode::Decimal => b"kMGTPE",
+        };
+        let unit_suffix = match mode {
+            DisplayMode::Binary => "iB",
+            DisplayMode::Decimal => "B",
+        };
+        let unit_separator = " ";
+        let precision = 1;
+
+        if bytes < unit {
+            format!("{bytes}{unit_separator}B")
+        } else {
+            let size = bytes as f64;
+
+            let mut ideal_prefix = 0usize;
+            let mut ideal_size = size;
+            loop {
+                ideal_prefix += 1;
+                ideal_size /= unit as f64;
+
+                if ideal_size < unit as f64 {
+                    break;
+                }
+            }
+            let exp = ideal_prefix;
+            let unit_prefix = unit_prefixes[exp - 1] as char;
+
+            format!(
+                "{:.precision$}{unit_separator}{unit_prefix}{unit_suffix}",
+                size / unit.pow(exp as u32) as f64,
+            )
+        }
+    }
+}

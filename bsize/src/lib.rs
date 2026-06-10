@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![deny(missing_docs)]
+
 //! `BSize` provides multiple semantic wrappers and utilities for byte size representations.
 //!
 //! # Features
@@ -72,9 +75,10 @@
 //! println!("{size}");
 //! ```
 
-#![cfg_attr(docsrs, feature(doc_cfg))]
-#![deny(missing_docs)]
 #![no_std]
+
+#[cfg(test)] // no-alloc; only used for tests
+extern crate alloc;
 
 mod display;
 mod ops;
