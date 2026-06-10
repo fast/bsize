@@ -40,7 +40,7 @@ macro_rules! impl_serialize {
 impl_serialize!(u8, u16, u32, u64, usize);
 
 macro_rules! impl_deserialize {
-    ($($ty:ty),* $(,)?) => {
+    ($($ty:ty => $deserialize:ident),* $(,)?) => {
         $(
             impl<'de> serde_core::Deserialize<'de> for BSize<$ty> {
                 fn deserialize<D>(de: D) -> Result<Self, D::Error>
@@ -100,7 +100,7 @@ macro_rules! impl_deserialize {
                     if de.is_human_readable() {
                         de.deserialize_any(Visitor)
                     } else {
-                        de.deserialize_u64(Visitor)
+                        de.$deserialize(Visitor)
                     }
                 }
             }
@@ -108,7 +108,18 @@ macro_rules! impl_deserialize {
     };
 }
 
-impl_deserialize!(u8, u16, u32, u64, usize);
+impl_deserialize!(
+    u8 => deserialize_u8,
+    u16 => deserialize_u16,
+    u32 => deserialize_u32,
+    u64 => deserialize_u64,
+);
+
+#[cfg(target_pointer_width = "32")]
+impl_deserialize!(usize => deserialize_u32);
+
+#[cfg(target_pointer_width = "64")]
+impl_deserialize!(usize => deserialize_u64);
 
 #[cfg(test)]
 mod tests {

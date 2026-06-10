@@ -149,7 +149,7 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
                     state = ParseState::Integer;
                 } else {
                     if *b >= b'5' {
-                        mantissa += 1;
+                        mantissa = mantissa.checked_add(1).ok_or(ParseError::Overflow)?;
                     }
                     state = ParseState::IntegerOverflow;
                     exponent += 1;
@@ -164,7 +164,7 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
                     exponent -= 1;
                 } else {
                     if *b >= b'5' {
-                        mantissa += 1;
+                        mantissa = mantissa.checked_add(1).ok_or(ParseError::Overflow)?;
                     }
                     state = ParseState::FractionOverflow;
                 }
@@ -307,6 +307,8 @@ mod tests {
         for input in [
             "18_446_744_073_709_551_616",
             "18_446_744_073_709_551_620",
+            "18446744073709551615.5",
+            "184467440737095516155",
             "18.446_744_073_709_551_616 EB",
             "19EB",
             "16EiB",
