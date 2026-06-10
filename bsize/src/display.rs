@@ -136,6 +136,8 @@ impl_display!(u8, u16, u32, u64, usize);
 
 #[cfg(test)]
 mod tests {
+    use insta::assert_snapshot;
+
     use super::*;
 
     #[test]
@@ -146,41 +148,41 @@ mod tests {
             Display { size, mode }
         }
 
-        insta::assert_snapshot!(display(0, Binary), @"0 B");
-        insta::assert_snapshot!(display(0, Decimal), @"0 B");
-        insta::assert_snapshot!(display(1, Binary), @"1 B");
-        insta::assert_snapshot!(display(1, Decimal), @"1 B");
-        insta::assert_snapshot!(display(500, Binary), @"500 B");
-        insta::assert_snapshot!(display(500, Decimal), @"500 B");
-        insta::assert_snapshot!(display(999, Binary), @"999 B");
-        insta::assert_snapshot!(display(999, Decimal), @"999 B");
-        insta::assert_snapshot!(display(1000, Binary), @"1000 B");
-        insta::assert_snapshot!(display(1000, Decimal), @"1.0 kB");
-        insta::assert_snapshot!(display(1023, Binary), @"1023 B");
-        insta::assert_snapshot!(display(1023, Decimal), @"1.0 kB");
-        insta::assert_snapshot!(display(1024, Binary), @"1.0 KiB");
-        insta::assert_snapshot!(display(1024, Decimal), @"1.0 kB");
-        insta::assert_snapshot!(display(1025, Binary), @"1.0 KiB");
-        insta::assert_snapshot!(display(1025, Decimal), @"1.0 kB");
-        insta::assert_snapshot!(display(1500, Binary), @"1.5 KiB");
-        insta::assert_snapshot!(display(1500, Decimal), @"1.5 kB");
-        insta::assert_snapshot!(display(2048, Binary), @"2.0 KiB");
-        insta::assert_snapshot!(display(2048, Decimal), @"2.0 kB");
-        insta::assert_snapshot!(display(1_000_000, Binary), @"976.6 KiB");
-        insta::assert_snapshot!(display(1_000_000, Decimal), @"1.0 MB");
-        insta::assert_snapshot!(display(1_048_576, Binary), @"1.0 MiB");
-        insta::assert_snapshot!(display(1_048_576, Decimal), @"1.0 MB");
-        insta::assert_snapshot!(display(987_654_321, Binary), @"941.9 MiB");
-        insta::assert_snapshot!(display(987_654_321, Decimal), @"987.7 MB");
-        insta::assert_snapshot!(display(1_099_511_627_776, Binary), @"1.0 TiB");
-        insta::assert_snapshot!(display(1_099_511_627_776, Decimal), @"1.1 TB");
-        insta::assert_snapshot!(display(1_125_899_906_842_624, Binary), @"1.0 PiB");
-        insta::assert_snapshot!(display(1_125_899_906_842_624, Decimal), @"1.1 PB");
-        insta::assert_snapshot!(display(1_152_921_504_606_846_976, Binary), @"1.0 EiB");
-        insta::assert_snapshot!(display(1_152_921_504_606_846_976, Decimal), @"1.2 EB");
-        insta::assert_snapshot!(display(u64::MAX - 1, Binary), @"16.0 EiB");
-        insta::assert_snapshot!(display(u64::MAX - 1, Decimal), @"18.4 EB");
-        insta::assert_snapshot!(display(u64::MAX, Binary), @"16.0 EiB");
-        insta::assert_snapshot!(display(u64::MAX, Decimal), @"18.4 EB");
+        assert_snapshot!(display(0, Binary), @"0 B");
+        assert_snapshot!(display(0, Decimal), @"0 B");
+        assert_snapshot!(display(1, Binary), @"1 B");
+        assert_snapshot!(display(1, Decimal), @"1 B");
+        assert_snapshot!(display(500, Binary), @"500 B");
+        assert_snapshot!(display(500, Decimal), @"500 B");
+        assert_snapshot!(display(999, Binary), @"999 B");
+        assert_snapshot!(display(999, Decimal), @"999 B");
+        assert_snapshot!(display(1000, Binary), @"1000 B");
+        assert_snapshot!(display(1000, Decimal), @"1.0 kB");
+        assert_snapshot!(display(1023, Binary), @"1023 B");
+        assert_snapshot!(display(1023, Decimal), @"1.0 kB");
+        assert_snapshot!(display(1024, Binary), @"1.0 KiB");
+        assert_snapshot!(display(1024, Decimal), @"1.0 kB");
+        assert_snapshot!(display(1025, Binary), @"1.0 KiB");
+        assert_snapshot!(display(1025, Decimal), @"1.0 kB");
+        assert_snapshot!(display(1500, Binary), @"1.5 KiB");
+        assert_snapshot!(display(1500, Decimal), @"1.5 kB");
+        assert_snapshot!(display(2048, Binary), @"2.0 KiB");
+        assert_snapshot!(display(2048, Decimal), @"2.0 kB");
+        assert_snapshot!(display(1_000_000, Binary), @"976.6 KiB");
+        assert_snapshot!(display(1_000_000, Decimal), @"1.0 MB");
+        assert_snapshot!(display(1_048_576, Binary), @"1.0 MiB");
+        assert_snapshot!(display(1_048_576, Decimal), @"1.0 MB");
+        assert_snapshot!(display(987_654_321, Binary), @"941.9 MiB");
+        assert_snapshot!(display(987_654_321, Decimal), @"987.7 MB");
+        assert_snapshot!(display(1_099_511_627_776, Binary), @"1.0 TiB");
+        assert_snapshot!(display(1_099_511_627_776, Decimal), @"1.1 TB");
+        assert_snapshot!(display(1_125_899_906_842_624, Binary), @"1.0 PiB");
+        assert_snapshot!(display(1_125_899_906_842_624, Decimal), @"1.1 PB");
+        assert_snapshot!(display(1_152_921_504_606_846_976, Binary), @"1.0 EiB");
+        assert_snapshot!(display(1_152_921_504_606_846_976, Decimal), @"1.2 EB");
+        assert_snapshot!(display(u64::MAX - 1, Binary), @"16.0 EiB");
+        assert_snapshot!(display(u64::MAX - 1, Decimal), @"18.4 EB");
+        assert_snapshot!(display(u64::MAX, Binary), @"16.0 EiB");
+        assert_snapshot!(display(u64::MAX, Decimal), @"18.4 EB");
     }
 }
