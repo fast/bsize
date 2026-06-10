@@ -113,8 +113,13 @@ impl_deserialize!(
     u16 => deserialize_u16,
     u32 => deserialize_u32,
     u64 => deserialize_u64,
-    usize => deserialize_u64,
 );
+
+#[cfg(target_pointer_width = "32")]
+impl_deserialize!(usize => deserialize_u32);
+
+#[cfg(target_pointer_width = "64")]
+impl_deserialize!(usize => deserialize_u64);
 
 #[cfg(test)]
 mod tests {
