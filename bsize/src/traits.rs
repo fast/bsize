@@ -22,11 +22,30 @@ mod private {
     impl Sealed for u64 {}
 }
 
-/// A marker trait for all unsigned integers.
-pub trait Unsigned: private::Sealed {}
+/// A marker trait for all supported byte size underneath type.
+pub trait ByteSize: private::Sealed {}
 
-impl Unsigned for usize {}
-impl Unsigned for u8 {}
-impl Unsigned for u16 {}
-impl Unsigned for u32 {}
-impl Unsigned for u64 {}
+impl ByteSize for usize {}
+impl ByteSize for u8 {}
+impl ByteSize for u16 {}
+impl ByteSize for u32 {}
+impl ByteSize for u64 {}
+
+/// A trait for all displayable byte size underneath type.
+pub trait Displayable: ByteSize {
+    /// Convert the byte size payload to a canonicalized floating point representation,
+    /// which will then be used for display purposes.
+    fn canonicalize(&self) -> f64;
+}
+
+macro_rules! impl_displayable {
+  ($($ty:ty),* $(,)?) => ($(
+      impl Displayable for $ty {
+          fn canonicalize(&self) -> f64 {
+              *self as f64
+          }
+      }
+  )*)
+}
+
+impl_displayable!(u8, u16, u32, u64, usize);

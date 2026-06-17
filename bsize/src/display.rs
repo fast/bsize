@@ -15,6 +15,13 @@
 use core::fmt;
 
 use crate::BSize;
+use crate::Displayable;
+
+/// Create a [`Display`] instance for displaying the byte size in various styles.
+pub fn display(size: impl Displayable) -> Display {
+    // @todo: rework the display logic to depend on f64
+    Display::new(size.canonicalize() as u64)
+}
 
 /// Display wrapper for [`BSize`].
 ///

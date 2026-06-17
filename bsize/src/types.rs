@@ -15,25 +15,25 @@
 use core::any::type_name;
 use core::fmt;
 
-use crate::unsigned::Unsigned;
+use crate::traits::ByteSize;
 
 /// Byte size representation.
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BSize<T: Unsigned>(pub T);
+pub struct BSize<T: ByteSize>(pub T);
 
-impl<T: Unsigned + fmt::Debug> fmt::Debug for BSize<T> {
+impl<T: ByteSize + fmt::Debug> fmt::Debug for BSize<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "BSize<{}>({:?})", type_name::<T>(), self.0)
     }
 }
 
-impl<T: Unsigned + fmt::Display> fmt::Display for BSize<T> {
+impl<T: ByteSize + fmt::Display> fmt::Display for BSize<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} B", self.0)
     }
 }
 
-impl<T: Unsigned> BSize<T> {
+impl<T: ByteSize> BSize<T> {
     /// Calculate a new byte size with the provided function, returning a new struct.
     pub fn with(self, f: impl FnOnce(T) -> T) -> Self {
         BSize(f(self.0))
