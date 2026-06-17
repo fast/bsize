@@ -115,6 +115,9 @@ impl_deserialize!(
     u64 => deserialize_u64,
 );
 
+#[cfg(target_pointer_width = "16")]
+impl_deserialize!(usize => deserialize_u16);
+
 #[cfg(target_pointer_width = "32")]
 impl_deserialize!(usize => deserialize_u32);
 
