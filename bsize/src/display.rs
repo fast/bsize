@@ -19,8 +19,7 @@ use crate::Displayable;
 
 /// Create a [`Display`] instance for displaying the byte size in various styles.
 pub fn display(size: impl Displayable) -> Display {
-    // @todo: rework the display logic to depend on f64
-    Display::new(size.canonicalize() as u64)
+    Display::new(size.canonicalize())
 }
 
 /// Display wrapper for [`BSize`].
@@ -45,7 +44,7 @@ pub fn display(size: impl Displayable) -> Display {
 /// ```
 #[derive(Debug, Clone)]
 pub struct Display {
-    size: u64,
+    size: f64,
     mode: DisplayMode,
 }
 
@@ -68,7 +67,7 @@ impl Display {
         self
     }
 
-    fn new(size: u64) -> Self {
+    fn new(size: f64) -> Self {
         Self {
             size,
             mode: DisplayMode::Binary,
@@ -81,8 +80,8 @@ impl fmt::Display for Display {
         let bytes = self.size;
 
         let unit = match self.mode {
-            DisplayMode::Binary => 1024,
-            DisplayMode::Decimal => 1000,
+            DisplayMode::Binary => 1024.0,
+            DisplayMode::Decimal => 1000.0,
         };
 
         let unit_prefixes = match self.mode {
@@ -99,15 +98,13 @@ impl fmt::Display for Display {
         if bytes < unit {
             write!(f, "{bytes}{unit_separator}B")?;
         } else {
-            let size = bytes as f64;
-
             let mut ideal_prefix = 0usize;
-            let mut ideal_size = size;
+            let mut ideal_size = bytes;
             loop {
                 ideal_prefix += 1;
-                ideal_size /= unit as f64;
+                ideal_size /= unit;
 
-                if ideal_size < unit as f64 {
+                if ideal_size < unit {
                     break;
                 }
             }
@@ -132,7 +129,7 @@ macro_rules! impl_display {
             impl BSize<$ty> {
                 /// Returns a display wrapper.
                 pub fn display(self) -> Display {
-                    Display::new(self.0 as u64)
+                    Display::new(self.0.canonicalize())
                 }
             }
         )*
@@ -143,6 +140,8 @@ impl_display!(u8, u16, u32, u64, usize);
 
 #[cfg(test)]
 mod tests {
+    use alloc::format;
+
     use insta::assert_snapshot;
 
     use super::*;
@@ -152,7 +151,9 @@ mod tests {
         use DisplayMode::*;
 
         fn display(size: u64, mode: DisplayMode) -> Display {
-            Display { size, mode }
+            let mut display = super::display(size);
+            display.mode = mode;
+            display
         }
 
         assert_snapshot!(display(0, Binary), @"0 B");
@@ -191,5 +192,12 @@ mod tests {
         assert_snapshot!(display(u64::MAX - 1, Decimal), @"18.4 EB");
         assert_snapshot!(display(u64::MAX, Binary), @"16.0 EiB");
         assert_snapshot!(display(u64::MAX, Decimal), @"18.4 EB");
+    }
+
+    #[test]
+    fn test_formats_fractional_sizes() {
+        assert_snapshot!(Display::new(42.5).binary(), @"42.5 B");
+        assert_snapshot!(Display::new(1000.5).decimal(), @"1.0 kB");
+        assert_snapshot!(format!("{:.2}", Display::new(2500.5).decimal()), @"2.50 kB");
     }
 }

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 mod private {
-    pub trait Sealed {}
+    pub trait Sealed: Sized {}
 
     impl Sealed for usize {}
     impl Sealed for u8 {}
