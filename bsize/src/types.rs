@@ -93,13 +93,16 @@ impl_constructors!(u64 => {
     eib = 1_152_921_504_606_846_976,
 });
 
+#[cfg(target_pointer_width = "16")]
 impl_constructors!(usize => {
     kb = 1_000,
     kib = 1_024,
 });
 
-#[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
+#[cfg(target_pointer_width = "32")]
 impl_constructors!(usize => {
+    kb = 1_000,
+    kib = 1_024,
     mb = 1_000_000,
     mib = 1_048_576,
     gb = 1_000_000_000,
@@ -108,6 +111,12 @@ impl_constructors!(usize => {
 
 #[cfg(target_pointer_width = "64")]
 impl_constructors!(usize => {
+    kb = 1_000,
+    kib = 1_024,
+    mb = 1_000_000,
+    mib = 1_048_576,
+    gb = 1_000_000_000,
+    gib = 1_073_741_824,
     tb = 1_000_000_000_000,
     tib = 1_099_511_627_776,
     pb = 1_000_000_000_000_000,
@@ -162,13 +171,16 @@ impl_accessors!(u64 => {
     as_eib = 1_152_921_504_606_846_976u64 => "exbibytes",
 });
 
+#[cfg(target_pointer_width = "16")]
 impl_accessors!(usize => {
     as_kb = 1_000usize => "kilobytes",
     as_kib = 1_024usize => "kibibytes",
 });
 
-#[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
+#[cfg(target_pointer_width = "32")]
 impl_accessors!(usize => {
+    as_kb = 1_000usize => "kilobytes",
+    as_kib = 1_024usize => "kibibytes",
     as_mb = 1_000_000usize => "megabytes",
     as_mib = 1_048_576usize => "mebibytes",
     as_gb = 1_000_000_000usize => "gigabytes",
@@ -177,6 +189,12 @@ impl_accessors!(usize => {
 
 #[cfg(target_pointer_width = "64")]
 impl_accessors!(usize => {
+    as_kb = 1_000usize => "kilobytes",
+    as_kib = 1_024usize => "kibibytes",
+    as_mb = 1_000_000usize => "megabytes",
+    as_mib = 1_048_576usize => "mebibytes",
+    as_gb = 1_000_000_000usize => "gigabytes",
+    as_gib = 1_073_741_824usize => "gibibytes",
     as_tb = 1_000_000_000_000usize => "terabytes",
     as_tib = 1_099_511_627_776usize => "tebibytes",
     as_pb = 1_000_000_000_000_000usize => "petabytes",
@@ -287,42 +305,42 @@ mod tests {
         );
     }
 
-    #[test]
-    fn constructs_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-    }
-
+    #[cfg(target_pointer_width = "16")]
     #[test]
     fn returns_usize_units() {
+        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
+        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
         assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
         assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
     }
 
-    #[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
+    #[cfg(target_pointer_width = "16")]
     #[test]
-    fn constructs_32_bit_usize_units() {
+    fn returns_usize_units() {
+        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
+        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
+        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
+        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
         assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
         assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
-    }
-
-    #[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
-    #[test]
-    fn returns_32_bit_usize_units() {
         assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
         assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
     }
 
     #[cfg(target_pointer_width = "64")]
     #[test]
-    fn constructs_64_bit_usize_units() {
+    fn returns_usize_units() {
+        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
+        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
+        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
+        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
+        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
+        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
+        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
+        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
         assert_eq!(BSize::<usize>::eb(2).0, 2_000_000_000_000_000_000);
         assert_eq!(BSize::<usize>::eib(2).0, 2_305_843_009_213_693_952);
-    }
-
-    #[cfg(target_pointer_width = "64")]
-    #[test]
-    fn returns_64_bit_usize_units() {
+        assert_close(BSize::<usize>::eb(2).as_eb(), 2.0);
         assert_close(BSize::<usize>::eib(2).as_eib(), 2.0);
     }
 }
