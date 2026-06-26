@@ -4,6 +4,8 @@ All significant changes to this software be documented in this file.
 
 ## Unreleased
 
+## v0.2.0 (2026-06-27)
+
 ### Breaking changes
 
 * The trait bound `Unsigned` has been renamed to `ByteSize`.
