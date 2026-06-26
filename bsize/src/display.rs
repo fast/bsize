@@ -24,8 +24,6 @@ pub fn display(size: impl Displayable) -> Display {
 
 /// Display wrapper for [`BSize`].
 ///
-/// Supports various styles:
-///
 /// # Examples
 ///
 /// ```
@@ -71,25 +69,38 @@ impl DisplayOptions {
         unit_system: DisplayUnitSystem::Decimal,
     };
 
-    /// Sets the base unit used for display.
+    /// Construct a new [`DisplayOptions`] with the [`BINARY`](Self::BINARY) preset.
+    #[inline(always)]
+    pub const fn new() -> Self {
+        DisplayOptions::BINARY
+    }
+
+    /// Set the base unit used for display.
     #[inline(always)]
     pub const fn base_unit(mut self, base_unit: DisplayBaseUnit) -> Self {
         self.base_unit = base_unit;
         self
     }
 
-    /// Sets the display scale.
+    /// Set the display scale.
     #[inline(always)]
     pub const fn scale(mut self, scale: DisplayScale) -> Self {
         self.scale = scale;
         self
     }
 
-    /// Sets the unit system used for display.
+    /// Set the unit system used for display.
     #[inline(always)]
     pub const fn unit_system(mut self, unit_system: DisplayUnitSystem) -> Self {
         self.unit_system = unit_system;
         self
+    }
+}
+
+impl Default for DisplayOptions {
+    /// Same as [`DisplayOptions::new`].
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -138,19 +149,19 @@ pub enum DisplayUnitSystem {
 }
 
 impl Display {
-    /// Sets the display option to the preset [`DisplayOptions::BINARY`].
+    /// Set the display option to the preset [`DisplayOptions::BINARY`].
     pub fn binary(mut self) -> Self {
         self.options = DisplayOptions::BINARY;
         self
     }
 
-    /// Sets the display option to the preset [`DisplayOptions::DECIMAL`].
+    /// Set the display option to the preset [`DisplayOptions::DECIMAL`].
     pub fn decimal(mut self) -> Self {
         self.options = DisplayOptions::DECIMAL;
         self
     }
 
-    /// Sets the options for display.
+    /// Set the options for display.
     pub fn options(mut self, options: DisplayOptions) -> Self {
         self.options = options;
         self
@@ -259,20 +270,12 @@ fn scaled_value(mut value: f64, divisor: f64, exponent: usize) -> f64 {
     value
 }
 
-macro_rules! impl_display {
-    ($($ty:ty),* $(,)?) => {
-        $(
-            impl BSize<$ty> {
-                /// Returns a display wrapper.
-                pub fn display(self) -> Display {
-                    Display::new(self.0.canonicalize())
-                }
-            }
-        )*
-    };
+impl<T: Displayable> BSize<T> {
+    /// Returns a display wrapper.
+    pub fn display(&self) -> Display {
+        Display::new(self.0.canonicalize())
+    }
 }
-
-impl_display!(u8, u16, u32, u64, usize);
 
 #[cfg(test)]
 mod tests {

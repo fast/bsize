@@ -29,6 +29,11 @@ impl<T: ByteSize + fmt::Debug> fmt::Debug for BSize<T> {
 
 impl<T: ByteSize + fmt::Display> fmt::Display for BSize<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Stick to a base scale, so that users would not be surprised by:
+        //
+        //   println!("{}", BSize::<usize>::kb(42))
+        //
+        // returns "41.0 KiB" rather than "42.0 KB".
         write!(f, "{} B", self.0)
     }
 }
