@@ -308,13 +308,24 @@ impl fmt::Display for Display {
         let precision = f.precision();
 
         if let Some(width) = f.width() {
-            let content_width = formatted_width(value, exponent, self.options, precision)?;
-            let padding = width.saturating_sub(content_width);
-            let (left_padding, right_padding) =
-                padding_sides(padding, f.align().unwrap_or(fmt::Alignment::Left));
-            write_fill(f, left_padding)?;
+            let mut counter = WidthCounter::default();
+            write_display(&mut counter, value, exponent, self.options, precision)?;
+
+            let padding = width.saturating_sub(counter.width);
+            let (left_padding, right_padding) = match f.align().unwrap_or(fmt::Alignment::Left) {
+                fmt::Alignment::Left => (0, padding),
+                fmt::Alignment::Right => (padding, 0),
+                fmt::Alignment::Center => (padding / 2, padding - padding / 2),
+            };
+
+            let fill = f.fill();
+            for _ in 0..left_padding {
+                f.write_char(fill)?;
+            }
             write_display(f, value, exponent, self.options, precision)?;
-            write_fill(f, right_padding)?;
+            for _ in 0..right_padding {
+                f.write_char(fill)?;
+            }
             Ok(())
         } else {
             write_display(f, value, exponent, self.options, precision)
@@ -329,27 +340,17 @@ fn write_display(
     options: DisplayOptions,
     precision: Option<usize>,
 ) -> fmt::Result {
-    write_value(f, value, exponent, precision)?;
-    f.write_char(' ')?;
-    write_unit(f, options, exponent)
-}
-
-fn write_value(
-    f: &mut impl fmt::Write,
-    value: f64,
-    exponent: usize,
-    precision: Option<usize>,
-) -> fmt::Result {
     if let Some(precision) = precision {
-        write!(f, "{value:.precision$}")
+        write!(f, "{value:.precision$}")?;
     } else if exponent == 0 {
-        write!(f, "{value}")
+        write!(f, "{value}")?;
     } else {
-        write!(f, "{value:.1}")
+        write!(f, "{value:.1}")?;
     }
-}
 
-fn write_unit(f: &mut impl fmt::Write, options: DisplayOptions, exponent: usize) -> fmt::Result {
+    let unit_separator = " ";
+    f.write_str(unit_separator)?;
+
     if exponent == 0 {
         f.write_str(match options.base_unit {
             DisplayBaseUnit::Bit => "bit",
@@ -372,32 +373,6 @@ fn write_unit(f: &mut impl fmt::Write, options: DisplayOptions, exponent: usize)
         let unit_prefix = unit_prefixes[exponent - 1] as char;
         write!(f, "{unit_prefix}{unit_suffix}")
     }
-}
-
-fn formatted_width(
-    value: f64,
-    exponent: usize,
-    options: DisplayOptions,
-    precision: Option<usize>,
-) -> Result<usize, fmt::Error> {
-    let mut counter = WidthCounter::default();
-    write_display(&mut counter, value, exponent, options, precision)?;
-    Ok(counter.width)
-}
-
-fn padding_sides(padding: usize, align: fmt::Alignment) -> (usize, usize) {
-    match align {
-        fmt::Alignment::Left => (0, padding),
-        fmt::Alignment::Right => (padding, 0),
-        fmt::Alignment::Center => (padding / 2, padding - padding / 2),
-    }
-}
-
-fn write_fill(f: &mut fmt::Formatter<'_>, width: usize) -> fmt::Result {
-    for _ in 0..width {
-        f.write_char(f.fill())?;
-    }
-    Ok(())
 }
 
 #[derive(Default)]
