@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use core::fmt;
+use core::fmt::Write as _;
 
 use crate::BSize;
 use crate::Displayable;
@@ -77,6 +78,18 @@ impl<T: Displayable> BSize<T> {
 ///     format!("{:.2}", BSize::<u64>::b(1575).display())
 /// );
 /// assert_eq!("1.575 KiB", format!("{:.3}", bsize::display(1613u64)));
+/// ```
+///
+/// Standard formatter width, fill, and alignment options are supported.
+///
+/// ```
+/// let size = bsize::display(1536u64);
+///
+/// assert_eq!("1.5 KiB   ", format!("{size:10}"));
+/// assert_eq!("   1.5 KiB", format!("{size:>10}"));
+/// assert_eq!(" 1.5 KiB  ", format!("{size:^10}"));
+/// assert_eq!("*1.5 KiB**", format!("{size:*^10}"));
+/// assert_eq!("**1.50 KiB", format!("{size:*>10.2}"));
 /// ```
 ///
 /// Use [`DisplayOptions`] to choose a fixed scale or show values as bits.
@@ -292,40 +305,115 @@ impl fmt::Display for Display {
             DisplayUnitSystem::Decimal => 1000.0,
         };
         let (value, exponent) = scaled_value(value, divisor, self.options.scale);
+        let precision = f.precision();
 
-        if let Some(precision) = f.precision() {
-            write!(f, "{value:.precision$}")?;
-        } else if exponent == 0 {
-            write!(f, "{value}")?;
+        if let Some(width) = f.width() {
+            let content_width = formatted_width(value, exponent, self.options, precision)?;
+            let padding = width.saturating_sub(content_width);
+            let (left_padding, right_padding) =
+                padding_sides(padding, f.align().unwrap_or(fmt::Alignment::Left));
+            write_fill(f, left_padding)?;
+            write_display(f, value, exponent, self.options, precision)?;
+            write_fill(f, right_padding)?;
+            Ok(())
         } else {
-            write!(f, "{value:.1}")?;
+            write_display(f, value, exponent, self.options, precision)
         }
+    }
+}
 
-        let unit_separator = " ";
-        f.write_str(unit_separator)?;
+fn write_display(
+    f: &mut impl fmt::Write,
+    value: f64,
+    exponent: usize,
+    options: DisplayOptions,
+    precision: Option<usize>,
+) -> fmt::Result {
+    write_value(f, value, exponent, precision)?;
+    f.write_char(' ')?;
+    write_unit(f, options, exponent)
+}
 
-        if exponent == 0 {
-            f.write_str(match self.options.base_unit {
-                DisplayBaseUnit::Bit => "bit",
-                DisplayBaseUnit::Byte => "B",
-            })
-        } else {
-            // Unit system references
-            // * https://en.wikipedia.org/wiki/Kilobyte
-            // * https://en.wikipedia.org/wiki/Bit#Multiple_bits
-            let unit_prefixes = match self.options.unit_system {
-                DisplayUnitSystem::Binary => b"KMGTPE",
-                DisplayUnitSystem::Decimal => b"kMGTPE",
-            };
-            let unit_suffix = match (self.options.unit_system, self.options.base_unit) {
-                (DisplayUnitSystem::Binary, DisplayBaseUnit::Bit) => "ibit",
-                (DisplayUnitSystem::Binary, DisplayBaseUnit::Byte) => "iB",
-                (DisplayUnitSystem::Decimal, DisplayBaseUnit::Bit) => "bit",
-                (DisplayUnitSystem::Decimal, DisplayBaseUnit::Byte) => "B",
-            };
-            let unit_prefix = unit_prefixes[exponent - 1] as char;
-            write!(f, "{unit_prefix}{unit_suffix}")
-        }
+fn write_value(
+    f: &mut impl fmt::Write,
+    value: f64,
+    exponent: usize,
+    precision: Option<usize>,
+) -> fmt::Result {
+    if let Some(precision) = precision {
+        write!(f, "{value:.precision$}")
+    } else if exponent == 0 {
+        write!(f, "{value}")
+    } else {
+        write!(f, "{value:.1}")
+    }
+}
+
+fn write_unit(f: &mut impl fmt::Write, options: DisplayOptions, exponent: usize) -> fmt::Result {
+    if exponent == 0 {
+        f.write_str(match options.base_unit {
+            DisplayBaseUnit::Bit => "bit",
+            DisplayBaseUnit::Byte => "B",
+        })
+    } else {
+        // Unit system references
+        // * https://en.wikipedia.org/wiki/Kilobyte
+        // * https://en.wikipedia.org/wiki/Bit#Multiple_bits
+        let unit_prefixes = match options.unit_system {
+            DisplayUnitSystem::Binary => b"KMGTPE",
+            DisplayUnitSystem::Decimal => b"kMGTPE",
+        };
+        let unit_suffix = match (options.unit_system, options.base_unit) {
+            (DisplayUnitSystem::Binary, DisplayBaseUnit::Bit) => "ibit",
+            (DisplayUnitSystem::Binary, DisplayBaseUnit::Byte) => "iB",
+            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Bit) => "bit",
+            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Byte) => "B",
+        };
+        let unit_prefix = unit_prefixes[exponent - 1] as char;
+        write!(f, "{unit_prefix}{unit_suffix}")
+    }
+}
+
+fn formatted_width(
+    value: f64,
+    exponent: usize,
+    options: DisplayOptions,
+    precision: Option<usize>,
+) -> Result<usize, fmt::Error> {
+    let mut counter = WidthCounter::default();
+    write_display(&mut counter, value, exponent, options, precision)?;
+    Ok(counter.width)
+}
+
+fn padding_sides(padding: usize, align: fmt::Alignment) -> (usize, usize) {
+    match align {
+        fmt::Alignment::Left => (0, padding),
+        fmt::Alignment::Right => (padding, 0),
+        fmt::Alignment::Center => (padding / 2, padding - padding / 2),
+    }
+}
+
+fn write_fill(f: &mut fmt::Formatter<'_>, width: usize) -> fmt::Result {
+    for _ in 0..width {
+        f.write_char(f.fill())?;
+    }
+    Ok(())
+}
+
+#[derive(Default)]
+struct WidthCounter {
+    width: usize,
+}
+
+impl fmt::Write for WidthCounter {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.width += s.chars().count();
+        Ok(())
+    }
+
+    fn write_char(&mut self, _: char) -> fmt::Result {
+        self.width += 1;
+        Ok(())
     }
 }
 
@@ -470,5 +558,18 @@ mod tests {
             .scale(DisplayScale::Kilo);
 
         assert_snapshot!(display(1536u64).options(options), @"12.0 Kibit");
+    }
+
+    #[test]
+    fn test_formats_with_width_fill_and_alignment() {
+        assert_snapshot!(format!("{:10}", display(1536u64)), @"1.5 KiB   ");
+        assert_snapshot!(format!("{:<10}", display(1536u64)), @"1.5 KiB   ");
+        assert_snapshot!(format!("{:>10}", display(1536u64)), @"   1.5 KiB");
+        assert_snapshot!(format!("{:^10}", display(1536u64)), @" 1.5 KiB  ");
+        assert_snapshot!(format!("{:*^10}", display(1536u64)), @"*1.5 KiB**");
+        assert_snapshot!(
+            format!("{:*>10.2}", display(1536u64)),
+            @"**1.50 KiB"
+        );
     }
 }
