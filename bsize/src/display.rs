@@ -41,7 +41,7 @@ impl<T: Displayable> BSize<T> {
 ///
 /// # Examples
 ///
-/// Display with the [`BINARY`] and decimal presets.
+/// Display with the [`DisplayOptions::BINARY`] and [`DisplayOptions::DECIMAL`] presets.
 ///
 /// ```
 /// use bsize::BSize;
@@ -96,34 +96,28 @@ impl<T: Displayable> BSize<T> {
 ///
 /// ```
 /// use bsize::DisplayBaseUnit;
-/// use bsize::DisplayOptions;
 /// use bsize::DisplayScale;
 ///
-/// let as_kibits = DisplayOptions::BINARY
-///     .base_unit(DisplayBaseUnit::Bit)
-///     .scale(DisplayScale::Kilo);
+/// let as_kibits = bsize::display(1536u64).options(|opts| {
+///     opts.base_unit(DisplayBaseUnit::Bit)
+///         .scale(DisplayScale::Kilo)
+/// });
 ///
-/// assert_eq!(
-///     "12.0 Kibit",
-///     bsize::display(1536u64).options(as_kibits).to_string()
-/// );
+/// assert_eq!("12.0 Kibit", as_kibits.to_string());
 /// ```
 ///
 /// Decimal units use a base of 1000 and SI prefixes.
 ///
 /// ```
-/// use bsize::DisplayOptions;
 /// use bsize::DisplayScale;
 /// use bsize::DisplayUnitSystem;
 ///
-/// let options = DisplayOptions::new()
-///     .unit_system(DisplayUnitSystem::Decimal)
-///     .scale(DisplayScale::Mega);
+/// let display = bsize::display(1_500_000u64).options(|opts| {
+///     opts.unit_system(DisplayUnitSystem::Decimal)
+///         .scale(DisplayScale::Mega)
+/// });
 ///
-/// assert_eq!(
-///     "1.500 MB",
-///     format!("{:.3}", bsize::display(1_500_000u64).options(options))
-/// );
+/// assert_eq!("1.500 MB", format!("{display:.3}"));
 /// ```
 #[derive(Debug, Clone)]
 pub struct Display {
@@ -217,10 +211,10 @@ pub enum DisplayBaseUnit {
     ///
     /// ```
     /// use bsize::DisplayBaseUnit;
-    /// use bsize::DisplayOptions;
     ///
-    /// let options = DisplayOptions::new().base_unit(DisplayBaseUnit::Bit);
-    /// assert_eq!("8 bit", bsize::display(1usize).options(options).to_string());
+    /// let display = bsize::display(1usize).options(|opts| opts.base_unit(DisplayBaseUnit::Bit));
+    ///
+    /// assert_eq!("8 bit", display.to_string());
     /// ```
     Bit,
     /// Format values as bytes.
@@ -282,9 +276,38 @@ impl Display {
 
     /// Set the options for display.
     ///
-    /// See [`Display`] for examples.
-    pub fn options(mut self, options: DisplayOptions) -> Self {
-        self.options = options;
+    /// The provided closure receives the current options, so customizations can
+    /// build on the default binary preset or preconfigured options.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bsize::DisplayScale;
+    ///
+    /// let display = bsize::display(1536u64)
+    ///     .decimal()
+    ///     .options(|opts| opts.scale(DisplayScale::Kilo));
+    ///
+    /// assert_eq!("1.5 kB", display.to_string());
+    /// ```
+    ///
+    /// Use `|_| options` when the current options should be replaced as a whole.
+    ///
+    /// ```
+    /// use bsize::DisplayBaseUnit;
+    /// use bsize::DisplayOptions;
+    /// use bsize::DisplayScale;
+    ///
+    /// let network_units = DisplayOptions::DECIMAL
+    ///     .base_unit(DisplayBaseUnit::Bit)
+    ///     .scale(DisplayScale::Mega);
+    ///
+    /// let display = bsize::display(125_000u64).options(|_| network_units);
+    ///
+    /// assert_eq!("1.0 Mbit", display.to_string());
+    /// ```
+    pub fn options(mut self, f: impl FnOnce(DisplayOptions) -> DisplayOptions) -> Self {
+        self.options = f(self.options);
         self
     }
 
@@ -434,7 +457,7 @@ mod tests {
         use DisplayUnitSystem::*;
 
         fn display(size: u64, system: DisplayUnitSystem) -> Display {
-            super::display(size).options(DisplayOptions::BINARY.unit_system(system))
+            super::display(size).options(|opts| opts.unit_system(system))
         }
 
         assert_snapshot!(display(0, Binary), @"0 B");
@@ -491,17 +514,19 @@ mod tests {
     #[test]
     fn test_formats_scales() {
         assert_snapshot!(
-            display(1536u64).options(DisplayOptions::BINARY.scale(DisplayScale::Base)),
+            display(1536u64).options(|opts| opts.scale(DisplayScale::Base)),
             @"1536 B"
         );
         assert_snapshot!(
-            display(1536u64).options(DisplayOptions::BINARY.scale(DisplayScale::Kilo)),
+            display(1536u64).options(|opts| opts.scale(DisplayScale::Kilo)),
             @"1.5 KiB"
         );
         assert_snapshot!(
             format!(
                 "{:.3}",
-                display(1536u64).options(DisplayOptions::DECIMAL.scale(DisplayScale::Mega))
+                display(1536u64).options(|opts| opts
+                    .unit_system(DisplayUnitSystem::Decimal)
+                    .scale(DisplayScale::Mega))
             ),
             @"0.002 MB"
         );
@@ -510,30 +535,33 @@ mod tests {
     #[test]
     fn test_formats_bits() {
         assert_snapshot!(
-            display(1u64).options(DisplayOptions::BINARY.base_unit(DisplayBaseUnit::Bit)),
+            display(1u64).options(|opts| opts.base_unit(DisplayBaseUnit::Bit)),
             @"8 bit"
         );
         assert_snapshot!(
-            display(125u64).options(DisplayOptions::BINARY.base_unit(DisplayBaseUnit::Bit)),
+            display(125u64).options(|opts| opts.base_unit(DisplayBaseUnit::Bit)),
             @"1000 bit"
         );
         assert_snapshot!(
-            display(125u64).options(DisplayOptions::DECIMAL.base_unit(DisplayBaseUnit::Bit)),
+            display(125u64).options(|opts| opts
+                .base_unit(DisplayBaseUnit::Bit)
+                .unit_system(DisplayUnitSystem::Decimal)),
             @"1.0 kbit"
         );
         assert_snapshot!(
-            display(128u64).options(DisplayOptions::BINARY.base_unit(DisplayBaseUnit::Bit)),
+            display(128u64).options(|opts| opts.base_unit(DisplayBaseUnit::Bit)),
             @"1.0 Kibit"
         );
     }
 
     #[test]
     fn test_formats_with_display_options() {
-        let options = DisplayOptions::BINARY
-            .base_unit(DisplayBaseUnit::Bit)
-            .scale(DisplayScale::Kilo);
-
-        assert_snapshot!(display(1536u64).options(options), @"12.0 Kibit");
+        assert_snapshot!(
+            display(1536u64).options(|opts| opts
+                .base_unit(DisplayBaseUnit::Bit)
+                .scale(DisplayScale::Kilo)),
+            @"12.0 Kibit"
+        );
     }
 
     #[test]
@@ -543,9 +571,6 @@ mod tests {
         assert_snapshot!(format!("{:>10}", display(1536u64)), @"   1.5 KiB");
         assert_snapshot!(format!("{:^10}", display(1536u64)), @" 1.5 KiB  ");
         assert_snapshot!(format!("{:*^10}", display(1536u64)), @"*1.5 KiB**");
-        assert_snapshot!(
-            format!("{:*>10.2}", display(1536u64)),
-            @"**1.50 KiB"
-        );
+        assert_snapshot!(format!("{:*>10.2}", display(1536u64)), @"**1.50 KiB");
     }
 }
