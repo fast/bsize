@@ -134,7 +134,7 @@ macro_rules! impl_accessors {
                 /// The result is approximate when the byte count cannot be
                 /// represented exactly as `f64`.
                 #[inline(always)]
-                pub fn $name(&self) -> f64 {
+                pub const fn $name(&self) -> f64 {
                     (self.0 as f64) / ($size as f64)
                 }
             )*

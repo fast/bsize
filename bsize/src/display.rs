@@ -49,7 +49,7 @@ pub struct Display {
 /// Display formatting options.
 ///
 /// By default, values are formatted as bytes, with an automatically selected binary unit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub struct DisplayOptions {
     base_unit: DisplayBaseUnit,
     scale: DisplayScale,
@@ -71,12 +71,6 @@ impl DisplayOptions {
         unit_system: DisplayUnitSystem::Decimal,
     };
 
-    /// Creates display options with the default settings.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self::BINARY
-    }
-
     /// Sets the base unit used for display.
     #[inline(always)]
     pub const fn base_unit(mut self, base_unit: DisplayBaseUnit) -> Self {
@@ -96,12 +90,6 @@ impl DisplayOptions {
     pub const fn unit_system(mut self, unit_system: DisplayUnitSystem) -> Self {
         self.unit_system = unit_system;
         self
-    }
-}
-
-impl Default for DisplayOptions {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -150,29 +138,27 @@ pub enum DisplayUnitSystem {
 }
 
 impl Display {
-    /// Format using binary units (e.g., `11.8 MiB`)
+    /// Sets the display option to the preset [`DisplayOptions::BINARY`].
     pub fn binary(mut self) -> Self {
-        self.options = self.options.unit_system(DisplayUnitSystem::Binary);
+        self.options = DisplayOptions::BINARY;
         self
     }
 
-    /// Format using decimal units (e.g., `11.8 MB`)
+    /// Sets the display option to the preset [`DisplayOptions::DECIMAL`].
     pub fn decimal(mut self) -> Self {
-        self.options = self.options.unit_system(DisplayUnitSystem::Decimal);
+        self.options = DisplayOptions::DECIMAL;
         self
     }
 
-    /// Format with the provided display options.
+    /// Sets the options for display.
     pub fn options(mut self, options: DisplayOptions) -> Self {
         self.options = options;
         self
     }
 
     fn new(size: f64) -> Self {
-        Self {
-            size,
-            options: DisplayOptions::default(),
-        }
+        let options = DisplayOptions::BINARY;
+        Self { size, options }
     }
 }
 
@@ -295,19 +281,6 @@ mod tests {
     use insta::assert_snapshot;
 
     use super::*;
-
-    #[test]
-    fn test_display_options_default() {
-        let options = DisplayOptions::default();
-        assert_eq!(options, DisplayOptions::BINARY);
-        assert_eq!(options.base_unit, DisplayBaseUnit::Byte);
-        assert_eq!(options.scale, DisplayScale::Auto);
-        assert_eq!(options.unit_system, DisplayUnitSystem::Binary);
-        assert_eq!(
-            DisplayOptions::DECIMAL.unit_system,
-            DisplayUnitSystem::Decimal
-        );
-    }
 
     #[test]
     fn test_formatting_snapshots() {
