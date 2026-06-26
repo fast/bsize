@@ -45,8 +45,6 @@ pub struct Display {
 }
 
 /// Display formatting options.
-///
-/// By default, values are formatted as bytes, with an automatically selected binary unit.
 #[derive(Debug, Clone, Copy)]
 pub struct DisplayOptions {
     base_unit: DisplayBaseUnit,
@@ -179,24 +177,23 @@ impl fmt::Display for Display {
             DisplayBaseUnit::Bit => self.size * 8.0,
             DisplayBaseUnit::Byte => self.size,
         };
-
         let divisor = match self.options.unit_system {
             DisplayUnitSystem::Binary => 1024.0,
             DisplayUnitSystem::Decimal => 1000.0,
         };
+        let (value, exponent) = scaled_value(value, divisor, self.options.scale);
 
-        let exponent = match self.options.scale {
-            DisplayScale::Auto => auto_exponent(value, divisor),
-            scale => scale.exponent(),
-        };
-
-        let value = scaled_value(value, divisor, exponent);
         let unit_prefixes = match self.options.unit_system {
             DisplayUnitSystem::Binary => b"KMGTPE",
             DisplayUnitSystem::Decimal => b"kMGTPE",
         };
         let unit_separator = " ";
-        let unit_suffix = self.options.suffix();
+        let unit_suffix = match (self.options.unit_system, self.options.base_unit) {
+            (DisplayUnitSystem::Binary, DisplayBaseUnit::Bit) => "ibit",
+            (DisplayUnitSystem::Binary, DisplayBaseUnit::Byte) => "iB",
+            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Bit) => "bit",
+            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Byte) => "B",
+        };
 
         if let Some(precision) = f.precision() {
             write!(f, "{value:.precision$}")?;
@@ -209,7 +206,10 @@ impl fmt::Display for Display {
         f.write_str(unit_separator)?;
 
         if exponent == 0 {
-            f.write_str(self.options.base_unit.suffix())
+            f.write_str(match self.options.base_unit {
+                DisplayBaseUnit::Bit => "bit",
+                DisplayBaseUnit::Byte => "B",
+            })
         } else {
             let unit_prefix = unit_prefixes[exponent - 1] as char;
             write!(f, "{unit_prefix}{unit_suffix}")
@@ -217,57 +217,32 @@ impl fmt::Display for Display {
     }
 }
 
-impl DisplayBaseUnit {
-    fn suffix(self) -> &'static str {
-        match self {
-            Self::Bit => "bit",
-            Self::Byte => "B",
+fn scaled_value(mut value: f64, divisor: f64, scale: DisplayScale) -> (f64, usize) {
+    const MAX_EXPONENT: usize = 6;
+
+    let exponent = match scale {
+        DisplayScale::Auto => {
+            let mut exponent = 0;
+            while value >= divisor && exponent < MAX_EXPONENT {
+                value /= divisor;
+                exponent += 1;
+            }
+            return (value, exponent);
         }
-    }
-}
+        DisplayScale::Base => 0,
+        DisplayScale::Kilo => 1,
+        DisplayScale::Mega => 2,
+        DisplayScale::Giga => 3,
+        DisplayScale::Tera => 4,
+        DisplayScale::Peta => 5,
+        DisplayScale::Exa => 6,
+    };
 
-impl DisplayScale {
-    fn exponent(self) -> usize {
-        match self {
-            Self::Auto | Self::Base => 0,
-            Self::Kilo => 1,
-            Self::Mega => 2,
-            Self::Giga => 3,
-            Self::Tera => 4,
-            Self::Peta => 5,
-            Self::Exa => 6,
-        }
-    }
-}
-
-impl DisplayOptions {
-    fn suffix(self) -> &'static str {
-        match (self.unit_system, self.base_unit) {
-            (DisplayUnitSystem::Binary, DisplayBaseUnit::Bit) => "ibit",
-            (DisplayUnitSystem::Binary, DisplayBaseUnit::Byte) => "iB",
-            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Bit) => "bit",
-            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Byte) => "B",
-        }
-    }
-}
-
-fn auto_exponent(mut value: f64, divisor: f64) -> usize {
-    let mut exponent = 0;
-
-    while value >= divisor && exponent < DisplayScale::Exa.exponent() {
-        value /= divisor;
-        exponent += 1;
-    }
-
-    exponent
-}
-
-fn scaled_value(mut value: f64, divisor: f64, exponent: usize) -> f64 {
     for _ in 0..exponent {
         value /= divisor;
     }
 
-    value
+    (value, exponent)
 }
 
 impl<T: Displayable> BSize<T> {
