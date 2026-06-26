@@ -307,29 +307,30 @@ impl fmt::Display for Display {
         let (value, exponent) = scaled_value(value, divisor, self.options.scale);
         let precision = f.precision();
 
-        if let Some(width) = f.width() {
-            let mut counter = WidthCounter::default();
-            write_display(&mut counter, value, exponent, self.options, precision)?;
+        let Some(width) = f.width() else {
+            // fast path for no padding
+            return write_display(f, value, exponent, self.options, precision);
+        };
 
-            let padding = width.saturating_sub(counter.width);
-            let (left_padding, right_padding) = match f.align().unwrap_or(fmt::Alignment::Left) {
-                fmt::Alignment::Left => (0, padding),
-                fmt::Alignment::Right => (padding, 0),
-                fmt::Alignment::Center => (padding / 2, padding - padding / 2),
-            };
+        let mut counter = WidthCounter { width: 0 };
+        write_display(&mut counter, value, exponent, self.options, precision)?;
 
-            let fill = f.fill();
-            for _ in 0..left_padding {
-                f.write_char(fill)?;
-            }
-            write_display(f, value, exponent, self.options, precision)?;
-            for _ in 0..right_padding {
-                f.write_char(fill)?;
-            }
-            Ok(())
-        } else {
-            write_display(f, value, exponent, self.options, precision)
+        let padding = width.saturating_sub(counter.width);
+        let (left_padding, right_padding) = match f.align().unwrap_or(fmt::Alignment::Left) {
+            fmt::Alignment::Left => (0, padding),
+            fmt::Alignment::Right => (padding, 0),
+            fmt::Alignment::Center => (padding / 2, padding - padding / 2),
+        };
+
+        let fill = f.fill();
+        for _ in 0..left_padding {
+            f.write_char(fill)?;
         }
+        write_display(f, value, exponent, self.options, precision)?;
+        for _ in 0..right_padding {
+            f.write_char(fill)?;
+        }
+        Ok(())
     }
 }
 
@@ -375,14 +376,14 @@ fn write_display(
     }
 }
 
-#[derive(Default)]
 struct WidthCounter {
     width: usize,
 }
 
 impl fmt::Write for WidthCounter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.width += s.chars().count();
+        // HACK - all display character is ASCII
+        self.width += s.len();
         Ok(())
     }
 
