@@ -98,3 +98,32 @@ pub use self::parse::ParseError;
 pub use self::traits::ByteSize;
 pub use self::traits::Displayable;
 pub use self::types::BSize;
+
+#[cfg(test)]
+mod property_tests {
+    use alloc::string::String;
+    use alloc::string::ToString;
+
+    use super::*;
+
+    impl quickcheck::Arbitrary for BSize<u64> {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            Self(u64::arbitrary(g))
+        }
+    }
+
+    quickcheck::quickcheck! {
+        fn parsing_never_panics(size: String) -> bool {
+            let _ = size.parse::<BSize<u64>>();
+            true
+        }
+
+        fn to_string_never_blank(size: BSize<u64>) -> bool {
+            !size.to_string().is_empty()
+        }
+
+        fn string_round_trip(size: BSize<u64>) -> bool {
+            size.to_string().parse::<BSize<u64>>().unwrap() == size
+        }
+    }
+}
