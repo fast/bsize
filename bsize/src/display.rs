@@ -20,7 +20,8 @@ use crate::Displayable;
 
 /// Create a [`Display`] instance for displaying a byte size.
 ///
-/// See [`Display`] for examples.
+/// See [`Display`] for examples. Use [`Display::new`] when the byte count is already represented
+/// as an `f64`.
 pub fn display(size: impl Displayable) -> Display {
     Display::new(size.canonicalize())
 }
@@ -36,8 +37,8 @@ impl<T: Displayable> BSize<T> {
 
 /// Display wrapper for formatting byte sizes as human-readable strings.
 ///
-/// You may create this wrapper with [`display`] or [`BSize::display`], then pass custom
-/// [`DisplayOptions`] with [`Display::options`].
+/// You may create this wrapper with [`Display::new`], [`display`], or [`BSize::display`], then
+/// pass custom [`DisplayOptions`] with [`Display::options`].
 ///
 /// # Examples
 ///
@@ -66,6 +67,15 @@ impl<T: Displayable> BSize<T> {
 ///
 /// ```
 /// assert_eq!("1.5 KiB", bsize::display(1536u64).to_string());
+/// ```
+///
+/// Use [`Display::new`] when the byte count is already represented as an `f64`.
+///
+/// ```
+/// use bsize::Display;
+///
+/// assert_eq!("1.5 KiB", Display::new(1536.5).to_string());
+/// assert_eq!("1.54 kB", format!("{:.2}", Display::new(1536.5).decimal()));
 /// ```
 ///
 /// Use standard formatter precision to control the number of fractional digits.
@@ -311,7 +321,24 @@ impl Display {
         self
     }
 
-    fn new(size: f64) -> Self {
+    /// Create a [`Display`] instance from a byte count.
+    ///
+    /// This constructor is useful when the byte count is already represented as an `f64`. For
+    /// supported integer byte counts, use [`display`] or [`BSize::display`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bsize::Display;
+    ///
+    /// assert_eq!("2.5 KiB", Display::new(2560.0).to_string());
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `size` is not finite or is negative.
+    pub fn new(size: f64) -> Self {
+        assert!(size.is_finite() && size >= 0.0);
         let options = DisplayOptions::BINARY;
         Self { size, options }
     }
@@ -503,6 +530,24 @@ mod tests {
         assert_snapshot!(Display::new(42.5).binary(), @"42.5 B");
         assert_snapshot!(Display::new(1000.5).decimal(), @"1.0 kB");
         assert_snapshot!(format!("{:.2}", Display::new(2500.5).decimal()), @"2.50 kB");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_rejects_nan_size() {
+        Display::new(f64::NAN);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_rejects_infinite_size() {
+        Display::new(f64::INFINITY);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_rejects_negative_size() {
+        Display::new(-1.0);
     }
 
     #[test]

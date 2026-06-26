@@ -52,45 +52,24 @@
 //!
 //! ```
 //! use bsize::BSize;
+//! use bsize::DisplayBaseUnit;
+//! use bsize::DisplayOptions;
+//! use bsize::DisplayScale;
 //!
 //! assert_eq!(
 //!     "518.0 GiB",
 //!     BSize::<usize>::gib(518).display().binary().to_string()
 //! );
+//!
 //! assert_eq!(
 //!     "556.2 GB",
 //!     BSize::<usize>::gib(518).display().decimal().to_string()
 //! );
-//! ```
-//!
-//! Customize display options.
-//!
-//! ```
-//! use bsize::BSize;
-//! use bsize::DisplayBaseUnit;
-//! use bsize::DisplayScale;
-//!
-//! let display = BSize::<u64>::b(1536).display().options(|opts| {
-//!     opts.base_unit(DisplayBaseUnit::Bit)
-//!         .scale(DisplayScale::Kilo)
-//! });
-//!
-//! assert_eq!("12.0 Kibit", display.to_string());
-//! ```
-//!
-//! Replace display options with a shared preset.
-//!
-//! ```
-//! use bsize::DisplayBaseUnit;
-//! use bsize::DisplayOptions;
-//! use bsize::DisplayScale;
 //!
 //! let network_units = DisplayOptions::DECIMAL
 //!     .base_unit(DisplayBaseUnit::Bit)
 //!     .scale(DisplayScale::Mega);
-//!
-//! let display = bsize::display(125_000u64).options(|_| network_units);
-//!
+//! let display = bsize::display(125_000u64).options(|_opts| network_units);
 //! assert_eq!("1.0 Mbit", display.to_string());
 //! ```
 //!

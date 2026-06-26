@@ -4,6 +4,12 @@ All significant changes to this software be documented in this file.
 
 ## Unreleased
 
+## v0.2.1 (2026-06-27)
+
+### New features
+
+* Added `Display::new` for formatting finite, non-negative `f64` byte counts directly.
+
 ## v0.2.0 (2026-06-27)
 
 ### Breaking changes
