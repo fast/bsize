@@ -45,32 +45,32 @@ pub fn display(size: impl Displayable) -> Display {
 #[derive(Debug, Clone)]
 pub struct Display {
     size: f64,
-    mode: DisplayMode,
+    mode: DisplayUnit,
 }
 
 #[derive(Debug, Clone)]
-enum DisplayMode {
+enum DisplayUnit {
     Binary,
     Decimal,
 }
 
 impl Display {
-    /// Format using binary units (e.g., `11.8MiB`)
+    /// Format using binary units (e.g., `11.8 MiB`)
     pub fn binary(mut self) -> Self {
-        self.mode = DisplayMode::Binary;
+        self.mode = DisplayUnit::Binary;
         self
     }
 
-    /// Format using decimal units (e.g., `11.8MB`)
+    /// Format using decimal units (e.g., `11.8 MB`)
     pub fn decimal(mut self) -> Self {
-        self.mode = DisplayMode::Decimal;
+        self.mode = DisplayUnit::Decimal;
         self
     }
 
     fn new(size: f64) -> Self {
         Self {
             size,
-            mode: DisplayMode::Binary,
+            mode: DisplayUnit::Binary,
         }
     }
 }
@@ -80,17 +80,17 @@ impl fmt::Display for Display {
         let bytes = self.size;
 
         let unit = match self.mode {
-            DisplayMode::Binary => 1024.0,
-            DisplayMode::Decimal => 1000.0,
+            DisplayUnit::Binary => 1024.0,
+            DisplayUnit::Decimal => 1000.0,
         };
 
         let unit_prefixes = match self.mode {
-            DisplayMode::Binary => b"KMGTPE",
-            DisplayMode::Decimal => b"kMGTPE",
+            DisplayUnit::Binary => b"KMGTPE",
+            DisplayUnit::Decimal => b"kMGTPE",
         };
         let unit_suffix = match self.mode {
-            DisplayMode::Binary => "iB",
-            DisplayMode::Decimal => "B",
+            DisplayUnit::Binary => "iB",
+            DisplayUnit::Decimal => "B",
         };
         let unit_separator = " ";
         let precision = f.precision().unwrap_or(1);
@@ -148,9 +148,9 @@ mod tests {
 
     #[test]
     fn test_formatting_snapshots() {
-        use DisplayMode::*;
+        use DisplayUnit::*;
 
-        fn display(size: u64, mode: DisplayMode) -> Display {
+        fn display(size: u64, mode: DisplayUnit) -> Display {
             let mut display = super::display(size);
             display.mode = mode;
             display
