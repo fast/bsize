@@ -24,9 +24,9 @@ pub fn display(size: impl Displayable) -> Display {
 
 /// Display wrapper for [`BSize`].
 ///
-/// Supports various styles, see methods. By default, the [`binary`] style is used.
+/// Supports various styles, see methods. By default, the [`decimal`] style is used.
 ///
-/// [`binary`]: Display::binary
+/// [`decimal`]: Display::decimal
 ///
 /// # Examples
 ///
@@ -45,82 +45,252 @@ pub fn display(size: impl Displayable) -> Display {
 #[derive(Debug, Clone)]
 pub struct Display {
     size: f64,
-    mode: DisplayUnit,
+    unit: DisplayUnit,
 }
 
-#[derive(Debug, Clone)]
-enum DisplayUnit {
+/// Display unit options.
+///
+/// By default, values are formatted as bytes, with an automatically selected decimal unit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DisplayUnit {
+    base: DisplayBaseUnit,
+    fixed: DisplayFixedUnit,
+    system: DisplayUnitSystem,
+}
+
+impl DisplayUnit {
+    /// Creates display unit options with the default settings.
+    #[inline(always)]
+    pub const fn new() -> Self {
+        Self {
+            base: DisplayBaseUnit::Byte,
+            fixed: DisplayFixedUnit::None,
+            system: DisplayUnitSystem::Decimal,
+        }
+    }
+
+    /// Sets the base unit used for display.
+    #[inline(always)]
+    pub const fn base(mut self, base: DisplayBaseUnit) -> Self {
+        self.base = base;
+        self
+    }
+
+    /// Sets the fixed display unit.
+    #[inline(always)]
+    pub const fn fixed(mut self, fixed: DisplayFixedUnit) -> Self {
+        self.fixed = fixed;
+        self
+    }
+
+    /// Sets the unit system used for display.
+    #[inline(always)]
+    pub const fn system(mut self, system: DisplayUnitSystem) -> Self {
+        self.system = system;
+        self
+    }
+
+    /// Returns the configured base unit.
+    #[inline(always)]
+    pub const fn base_unit(&self) -> DisplayBaseUnit {
+        self.base
+    }
+
+    /// Returns the configured fixed display unit.
+    #[inline(always)]
+    pub const fn fixed_unit(&self) -> DisplayFixedUnit {
+        self.fixed
+    }
+
+    /// Returns the configured unit system.
+    #[inline(always)]
+    pub const fn unit_system(&self) -> DisplayUnitSystem {
+        self.system
+    }
+}
+
+impl Default for DisplayUnit {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Base unit used for display.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum DisplayBaseUnit {
+    /// Format values as bits.
+    ///
+    /// The byte count is converted to bits for display.
+    Bit,
+    /// Format values as bytes.
+    Byte,
+}
+
+/// Fixed display unit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum DisplayFixedUnit {
+    /// Select the display unit automatically.
+    None,
+    /// Format values in the base unit without a prefix.
+    One,
+    /// Format values in kilo units.
+    Kilo,
+    /// Format values in mega units.
+    Mega,
+    /// Format values in giga units.
+    Giga,
+    /// Format values in tera units.
+    Tera,
+    /// Format values in peta units.
+    Peta,
+    /// Format values in exa units.
+    Exa,
+}
+
+/// Unit system used for display.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum DisplayUnitSystem {
+    /// Use the binary unit system, with a base of 1024.
     Binary,
+    /// Use the decimal unit system, with a base of 1000.
     Decimal,
 }
 
 impl Display {
     /// Format using binary units (e.g., `11.8 MiB`)
     pub fn binary(mut self) -> Self {
-        self.mode = DisplayUnit::Binary;
+        self.unit = self.unit.system(DisplayUnitSystem::Binary);
         self
     }
 
     /// Format using decimal units (e.g., `11.8 MB`)
     pub fn decimal(mut self) -> Self {
-        self.mode = DisplayUnit::Decimal;
+        self.unit = self.unit.system(DisplayUnitSystem::Decimal);
+        self
+    }
+
+    /// Format with the provided display unit options.
+    pub fn options(mut self, unit: DisplayUnit) -> Self {
+        self.unit = unit;
+        self
+    }
+
+    /// Format using the provided base unit.
+    pub fn base_unit(mut self, base: DisplayBaseUnit) -> Self {
+        self.unit = self.unit.base(base);
+        self
+    }
+
+    /// Format using the provided fixed display unit.
+    pub fn fixed_unit(mut self, fixed: DisplayFixedUnit) -> Self {
+        self.unit = self.unit.fixed(fixed);
+        self
+    }
+
+    /// Format using the provided unit system.
+    pub fn unit_system(mut self, system: DisplayUnitSystem) -> Self {
+        self.unit = self.unit.system(system);
         self
     }
 
     fn new(size: f64) -> Self {
         Self {
             size,
-            mode: DisplayUnit::Binary,
+            unit: DisplayUnit::default(),
         }
     }
 }
 
 impl fmt::Display for Display {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let bytes = self.size;
-
-        let unit = match self.mode {
-            DisplayUnit::Binary => 1024.0,
-            DisplayUnit::Decimal => 1000.0,
+        let value = match self.unit.base {
+            DisplayBaseUnit::Bit => self.size * 8.0,
+            DisplayBaseUnit::Byte => self.size,
         };
 
-        let unit_prefixes = match self.mode {
-            DisplayUnit::Binary => b"KMGTPE",
-            DisplayUnit::Decimal => b"kMGTPE",
+        let divisor = match self.unit.system {
+            DisplayUnitSystem::Binary => 1024.0,
+            DisplayUnitSystem::Decimal => 1000.0,
         };
-        let unit_suffix = match self.mode {
-            DisplayUnit::Binary => "iB",
-            DisplayUnit::Decimal => "B",
+
+        let exponent = match self.unit.fixed {
+            DisplayFixedUnit::None => auto_exponent(value, divisor),
+            fixed => fixed.exponent(),
+        };
+
+        let value = value / divisor.powi(exponent as i32);
+        let unit_prefixes = match self.unit.system {
+            DisplayUnitSystem::Binary => b"KMGTPE",
+            DisplayUnitSystem::Decimal => b"kMGTPE",
         };
         let unit_separator = " ";
-        let precision = f.precision().unwrap_or(1);
+        let unit_suffix = self.unit.suffix();
 
-        if bytes < unit {
-            write!(f, "{bytes}{unit_separator}B")?;
+        if let Some(precision) = f.precision() {
+            write!(f, "{value:.precision$}")?;
+        } else if exponent == 0 {
+            write!(f, "{value}")?;
         } else {
-            let mut ideal_prefix = 0usize;
-            let mut ideal_size = bytes;
-            loop {
-                ideal_prefix += 1;
-                ideal_size /= unit;
-
-                if ideal_size < unit {
-                    break;
-                }
-            }
-            let exp = ideal_prefix;
-
-            let unit_prefix = unit_prefixes[exp - 1] as char;
-
-            write!(
-                f,
-                "{:.precision$}{unit_separator}{unit_prefix}{unit_suffix}",
-                ideal_size,
-            )?;
+            write!(f, "{value:.1}")?;
         }
 
-        Ok(())
+        f.write_str(unit_separator)?;
+
+        if exponent == 0 {
+            f.write_str(self.unit.base.suffix())
+        } else {
+            let unit_prefix = unit_prefixes[exponent - 1] as char;
+            write!(f, "{unit_prefix}{unit_suffix}")
+        }
     }
+}
+
+impl DisplayBaseUnit {
+    fn suffix(self) -> &'static str {
+        match self {
+            Self::Bit => "bit",
+            Self::Byte => "B",
+        }
+    }
+}
+
+impl DisplayFixedUnit {
+    fn exponent(self) -> usize {
+        match self {
+            Self::None | Self::One => 0,
+            Self::Kilo => 1,
+            Self::Mega => 2,
+            Self::Giga => 3,
+            Self::Tera => 4,
+            Self::Peta => 5,
+            Self::Exa => 6,
+        }
+    }
+}
+
+impl DisplayUnit {
+    fn suffix(self) -> &'static str {
+        match (self.system, self.base) {
+            (DisplayUnitSystem::Binary, DisplayBaseUnit::Bit) => "ibit",
+            (DisplayUnitSystem::Binary, DisplayBaseUnit::Byte) => "iB",
+            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Bit) => "bit",
+            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Byte) => "B",
+        }
+    }
+}
+
+fn auto_exponent(mut value: f64, divisor: f64) -> usize {
+    let mut exponent = 0;
+
+    while value >= divisor && exponent < DisplayFixedUnit::Exa.exponent() {
+        value /= divisor;
+        exponent += 1;
+    }
+
+    exponent
 }
 
 macro_rules! impl_display {
@@ -147,13 +317,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_formatting_snapshots() {
-        use DisplayUnit::*;
+    fn test_display_unit_default() {
+        let unit = DisplayUnit::default();
+        assert_eq!(unit.base_unit(), DisplayBaseUnit::Byte);
+        assert_eq!(unit.fixed_unit(), DisplayFixedUnit::None);
+        assert_eq!(unit.unit_system(), DisplayUnitSystem::Decimal);
+    }
 
-        fn display(size: u64, mode: DisplayUnit) -> Display {
-            let mut display = super::display(size);
-            display.mode = mode;
-            display
+    #[test]
+    fn test_formatting_snapshots() {
+        use DisplayUnitSystem::*;
+
+        fn display(size: u64, system: DisplayUnitSystem) -> Display {
+            super::display(size).unit_system(system)
         }
 
         assert_snapshot!(display(0, Binary), @"0 B");
@@ -199,5 +375,62 @@ mod tests {
         assert_snapshot!(Display::new(42.5).binary(), @"42.5 B");
         assert_snapshot!(Display::new(1000.5).decimal(), @"1.0 kB");
         assert_snapshot!(format!("{:.2}", Display::new(2500.5).decimal()), @"2.50 kB");
+    }
+
+    #[test]
+    fn test_formats_default_decimal() {
+        assert_snapshot!(super::display(999u64), @"999 B");
+        assert_snapshot!(super::display(1000u64), @"1.0 kB");
+    }
+
+    #[test]
+    fn test_formats_fixed_units() {
+        assert_snapshot!(
+            super::display(1536u64).fixed_unit(DisplayFixedUnit::One),
+            @"1536 B"
+        );
+        assert_snapshot!(
+            super::display(1536u64)
+                .binary()
+                .fixed_unit(DisplayFixedUnit::Kilo),
+            @"1.5 KiB"
+        );
+        assert_snapshot!(
+            format!(
+                "{:.3}",
+                super::display(1536u64)
+                    .decimal()
+                    .fixed_unit(DisplayFixedUnit::Mega)
+            ),
+            @"0.002 MB"
+        );
+    }
+
+    #[test]
+    fn test_formats_bits() {
+        assert_snapshot!(
+            super::display(1u64).base_unit(DisplayBaseUnit::Bit),
+            @"8 bit"
+        );
+        assert_snapshot!(
+            super::display(125u64).base_unit(DisplayBaseUnit::Bit),
+            @"1.0 kbit"
+        );
+        assert_snapshot!(
+            super::display(128u64)
+                .binary()
+                .base_unit(DisplayBaseUnit::Bit),
+            @"1.0 Kibit"
+        );
+    }
+
+    #[test]
+    fn test_formats_with_display_unit_options() {
+        let unit = DisplayUnit::default()
+            .base(DisplayBaseUnit::Bit)
+            .fixed(DisplayFixedUnit::Kilo)
+            .system(DisplayUnitSystem::Binary);
+
+        assert_snapshot!(super::display(1536u64).options(unit), @"12.0 Kibit");
     }
 }
