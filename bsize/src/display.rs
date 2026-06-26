@@ -276,8 +276,8 @@ impl Display {
 
     /// Set the options for display.
     ///
-    /// The provided closure receives the current options, so customizations can
-    /// build on the default binary preset or preconfigured options.
+    /// The provided closure receives the current options, so customizations can build on the
+    /// default binary preset or preconfigured options.
     ///
     /// # Examples
     ///
