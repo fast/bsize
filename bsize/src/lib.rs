@@ -90,8 +90,8 @@ mod types;
 
 pub use self::display::Display;
 pub use self::display::DisplayBaseUnit;
-pub use self::display::DisplayFixedUnit;
-pub use self::display::DisplayUnit;
+pub use self::display::DisplayOptions;
+pub use self::display::DisplayScale;
 pub use self::display::DisplayUnitSystem;
 pub use self::display::display;
 pub use self::parse::ParseError;
