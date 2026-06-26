@@ -24,9 +24,7 @@ pub fn display(size: impl Displayable) -> Display {
 
 /// Display wrapper for [`BSize`].
 ///
-/// Supports various styles, see methods. By default, the [`decimal`] style is used.
-///
-/// [`decimal`]: Display::decimal
+/// Supports various styles:
 ///
 /// # Examples
 ///
@@ -50,7 +48,7 @@ pub struct Display {
 
 /// Display unit options.
 ///
-/// By default, values are formatted as bytes, with an automatically selected decimal unit.
+/// By default, values are formatted as bytes, with an automatically selected binary unit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DisplayUnit {
     base: DisplayBaseUnit,
@@ -65,7 +63,7 @@ impl DisplayUnit {
         Self {
             base: DisplayBaseUnit::Byte,
             fixed: DisplayFixedUnit::None,
-            system: DisplayUnitSystem::Decimal,
+            system: DisplayUnitSystem::Binary,
         }
     }
 
@@ -88,24 +86,6 @@ impl DisplayUnit {
     pub const fn system(mut self, system: DisplayUnitSystem) -> Self {
         self.system = system;
         self
-    }
-
-    /// Returns the configured base unit.
-    #[inline(always)]
-    pub const fn base_unit(&self) -> DisplayBaseUnit {
-        self.base
-    }
-
-    /// Returns the configured fixed display unit.
-    #[inline(always)]
-    pub const fn fixed_unit(&self) -> DisplayFixedUnit {
-        self.fixed
-    }
-
-    /// Returns the configured unit system.
-    #[inline(always)]
-    pub const fn unit_system(&self) -> DisplayUnitSystem {
-        self.system
     }
 }
 
@@ -319,9 +299,9 @@ mod tests {
     #[test]
     fn test_display_unit_default() {
         let unit = DisplayUnit::default();
-        assert_eq!(unit.base_unit(), DisplayBaseUnit::Byte);
-        assert_eq!(unit.fixed_unit(), DisplayFixedUnit::None);
-        assert_eq!(unit.unit_system(), DisplayUnitSystem::Decimal);
+        assert_eq!(unit.base, DisplayBaseUnit::Byte);
+        assert_eq!(unit.fixed, DisplayFixedUnit::None);
+        assert_eq!(unit.system, DisplayUnitSystem::Binary);
     }
 
     #[test]
@@ -379,18 +359,18 @@ mod tests {
 
     #[test]
     fn test_formats_default_decimal() {
-        assert_snapshot!(super::display(999u64), @"999 B");
-        assert_snapshot!(super::display(1000u64), @"1.0 kB");
+        assert_snapshot!(display(999u64), @"999 B");
+        assert_snapshot!(display(1000u64), @"1.0 kB");
     }
 
     #[test]
     fn test_formats_fixed_units() {
         assert_snapshot!(
-            super::display(1536u64).fixed_unit(DisplayFixedUnit::One),
+            display(1536u64).fixed_unit(DisplayFixedUnit::One),
             @"1536 B"
         );
         assert_snapshot!(
-            super::display(1536u64)
+            display(1536u64)
                 .binary()
                 .fixed_unit(DisplayFixedUnit::Kilo),
             @"1.5 KiB"
@@ -398,7 +378,7 @@ mod tests {
         assert_snapshot!(
             format!(
                 "{:.3}",
-                super::display(1536u64)
+                display(1536u64)
                     .decimal()
                     .fixed_unit(DisplayFixedUnit::Mega)
             ),
@@ -409,15 +389,15 @@ mod tests {
     #[test]
     fn test_formats_bits() {
         assert_snapshot!(
-            super::display(1u64).base_unit(DisplayBaseUnit::Bit),
+            display(1u64).base_unit(DisplayBaseUnit::Bit),
             @"8 bit"
         );
         assert_snapshot!(
-            super::display(125u64).base_unit(DisplayBaseUnit::Bit),
+            display(125u64).base_unit(DisplayBaseUnit::Bit),
             @"1.0 kbit"
         );
         assert_snapshot!(
-            super::display(128u64)
+            display(128u64)
                 .binary()
                 .base_unit(DisplayBaseUnit::Bit),
             @"1.0 Kibit"
@@ -431,6 +411,6 @@ mod tests {
             .fixed(DisplayFixedUnit::Kilo)
             .system(DisplayUnitSystem::Binary);
 
-        assert_snapshot!(super::display(1536u64).options(unit), @"12.0 Kibit");
+        assert_snapshot!(display(1536u64).options(unit), @"12.0 Kibit");
     }
 }
