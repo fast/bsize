@@ -15,18 +15,18 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(missing_docs)]
 
-//! `BSize` provides multiple semantic wrappers and utilities for byte size representations.
+//! This crate provides multiple semantic wrappers and utilities for byte size representations.
 //!
 //! # Features
 //!
 //! * `#![no_std]`-capable, no dependencies, and uses no heap allocation.
-//! * `BSize` wrappers over `u8`, `u16`, `u32`, `u64`, and `usize` for representing byte sizes with
-//!   different underlying types.
-//! * `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5KiB" and
-//!   "521TiB".
-//! * `Display` impl for `BSize`, allowing for formatting byte sizes as human-readable strings in
+//! * [`BSize`] wrappers over `u8`, `u16`, `u32`, `u64`, and `usize` for representing byte sizes
+//!   with different underlying types.
+//! * `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB"
+//!   and "521 TB".
+//! * [`Display`] impl for `BSize`, allowing for formatting byte sizes as human-readable strings in
 //!   both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
-//! * Serde support for binary and human-readable deserializers like JSON.
+//! * Optional `serde` support for binary and human-readable format.
 //!
 //! # Examples
 //!
@@ -36,6 +36,16 @@
 //! use bsize::BSize;
 //!
 //! assert!(BSize::<usize>::kib(4) > BSize::<usize>::kb(4));
+//! ```
+//!
+//! Parse byte sizes from strings.
+//!
+//! ```
+//! use bsize::BSize;
+//!
+//! let size: BSize<u64> = "1.5 MiB".parse().unwrap();
+//!
+//! assert_eq!(BSize::<u64>::mib(1).with(|bytes| bytes + 512 * 1024), size,);
 //! ```
 //!
 //! Display as human-readable string.
@@ -51,6 +61,37 @@
 //!     "556.2 GB",
 //!     BSize::<usize>::gib(518).display().decimal().to_string()
 //! );
+//! ```
+//!
+//! Customize display options.
+//!
+//! ```
+//! use bsize::BSize;
+//! use bsize::DisplayBaseUnit;
+//! use bsize::DisplayScale;
+//!
+//! let display = BSize::<u64>::b(1536).display().options(|opts| {
+//!     opts.base_unit(DisplayBaseUnit::Bit)
+//!         .scale(DisplayScale::Kilo)
+//! });
+//!
+//! assert_eq!("12.0 Kibit", display.to_string());
+//! ```
+//!
+//! Replace display options with a shared preset.
+//!
+//! ```
+//! use bsize::DisplayBaseUnit;
+//! use bsize::DisplayOptions;
+//! use bsize::DisplayScale;
+//!
+//! let network_units = DisplayOptions::DECIMAL
+//!     .base_unit(DisplayBaseUnit::Bit)
+//!     .scale(DisplayScale::Mega);
+//!
+//! let display = bsize::display(125_000u64).options(|_| network_units);
+//!
+//! assert_eq!("1.0 Mbit", display.to_string());
 //! ```
 //!
 //! Arithmetic operations are supported.
@@ -89,8 +130,41 @@ mod traits;
 mod types;
 
 pub use self::display::Display;
+pub use self::display::DisplayBaseUnit;
+pub use self::display::DisplayOptions;
+pub use self::display::DisplayScale;
+pub use self::display::DisplayUnitSystem;
 pub use self::display::display;
 pub use self::parse::ParseError;
 pub use self::traits::ByteSize;
 pub use self::traits::Displayable;
 pub use self::types::BSize;
+
+#[cfg(test)]
+mod property_tests {
+    use alloc::string::String;
+    use alloc::string::ToString;
+
+    use super::*;
+
+    impl quickcheck::Arbitrary for BSize<u64> {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            Self(u64::arbitrary(g))
+        }
+    }
+
+    quickcheck::quickcheck! {
+        fn parsing_never_panics(size: String) -> bool {
+            let _ = size.parse::<BSize<u64>>();
+            true
+        }
+
+        fn to_string_never_blank(size: BSize<u64>) -> bool {
+            !size.to_string().is_empty()
+        }
+
+        fn string_round_trip(size: BSize<u64>) -> bool {
+            size.to_string().parse::<BSize<u64>>().unwrap() == size
+        }
+    }
+}

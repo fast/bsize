@@ -22,9 +22,9 @@ This crate provides multiple semantic wrappers and utilities for byte size repre
 
 * `#![no_std]`-capable, no dependencies, and uses no heap allocation.
 * `BSize` wrappers over `u8`, `u16`, `u32`, `u64`, and `usize` for representing byte sizes with different underlying types.
-* `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5KiB" and "521TiB".
+* `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB".
 * `Display` impl for `BSize`, allowing for formatting byte sizes as human-readable strings in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
-* Serde support for binary and human-readable deserializers like JSON.
+* Optional `serde` support for binary and human-readable format.
 
 ## Documentation
 
@@ -67,6 +67,8 @@ const RESULT_SIZE_LIMIT: BSize<usize> = BSize::gib(8);
 So you don't have to multiply the numbers by hand and rely on comments to indicate the units. This also makes it easier to change the units later if needed.
 
 What's more, when you want to parse a byte size from a string, `humansize` does not provide a function for that either.
+
+You can read [this issue](https://github.com/fast/bsize/issues/3) for the design discussion around the `Display` implementation for `BSize`.
 
 ### `parse-size`
 

@@ -12,24 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod private {
-    pub trait Sealed: Sized {}
+macro_rules! impl_marker {
+  ($t:ident for $($ty:ty),* $(,)?) => ($(
+      impl $t for $ty {}
+  )*)
+}
 
-    impl Sealed for usize {}
-    impl Sealed for u8 {}
-    impl Sealed for u16 {}
-    impl Sealed for u32 {}
-    impl Sealed for u64 {}
+mod private {
+    pub trait Sealed {}
+    impl_marker!(Sealed for u8, u16, u32, u64, usize);
 }
 
 /// A marker trait for all supported byte size underneath type.
 pub trait ByteSize: private::Sealed {}
-
-impl ByteSize for usize {}
-impl ByteSize for u8 {}
-impl ByteSize for u16 {}
-impl ByteSize for u32 {}
-impl ByteSize for u64 {}
+impl_marker!(ByteSize for u8, u16, u32, u64, usize);
 
 /// A trait for all displayable byte size underneath type.
 pub trait Displayable: ByteSize {
