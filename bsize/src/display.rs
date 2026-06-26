@@ -17,24 +17,39 @@ use core::fmt;
 use crate::BSize;
 use crate::Displayable;
 
-/// Create a [`Display`] instance for displaying the byte size in various styles.
+/// Create a [`Display`] instance for displaying a byte size.
+///
+/// See [`Display`] for examples.
 pub fn display(size: impl Displayable) -> Display {
     Display::new(size.canonicalize())
 }
 
 impl<T: Displayable> BSize<T> {
-    /// Returns a display wrapper.
+    /// Returns a [`Display`] wrapper.
+    ///
+    /// See [`Display`] for examples.
     pub fn display(&self) -> Display {
         Display::new(self.0.canonicalize())
     }
 }
 
-/// Display wrapper for [`BSize`].
+/// Display wrapper for formatting byte sizes as human-readable strings.
+///
+/// You may create this wrapper with [`display`] or [`BSize::display`], then pass custom
+/// [`DisplayOptions`] with [`Display::options`].
 ///
 /// # Examples
 ///
+/// Display with the [`BINARY`] and decimal presets.
+///
 /// ```
-/// # use bsize::BSize;
+/// use bsize::BSize;
+///
+/// assert_eq!(
+///     "41.0 KiB",
+///     BSize::<u64>::kb(42).display().to_string(), // default to binary
+/// );
+///
 /// assert_eq!(
 ///     "1.0 MiB",
 ///     BSize::<u64>::mib(1).display().binary().to_string(),
@@ -45,13 +60,67 @@ impl<T: Displayable> BSize<T> {
 ///     BSize::<u64>::kb(42).display().decimal().to_string(),
 /// );
 /// ```
+///
+/// The free [`display`] function accepts any supported integer byte size.
+///
+/// ```
+/// assert_eq!("1.5 KiB", bsize::display(1536u64).to_string());
+/// ```
+///
+/// Use standard formatter precision to control the number of fractional digits.
+///
+/// ```
+/// use bsize::BSize;
+///
+/// assert_eq!(
+///     "1.54 KiB",
+///     format!("{:.2}", BSize::<u64>::b(1575).display())
+/// );
+/// assert_eq!("1.575 KiB", format!("{:.3}", bsize::display(1613u64)));
+/// ```
+///
+/// Use [`DisplayOptions`] to choose a fixed scale or show values as bits.
+///
+/// ```
+/// use bsize::DisplayBaseUnit;
+/// use bsize::DisplayOptions;
+/// use bsize::DisplayScale;
+///
+/// let as_kibits = DisplayOptions::BINARY
+///     .base_unit(DisplayBaseUnit::Bit)
+///     .scale(DisplayScale::Kilo);
+///
+/// assert_eq!(
+///     "12.0 Kibit",
+///     bsize::display(1536u64).options(as_kibits).to_string()
+/// );
+/// ```
+///
+/// Decimal units use a base of 1000 and SI prefixes.
+///
+/// ```
+/// use bsize::DisplayOptions;
+/// use bsize::DisplayScale;
+/// use bsize::DisplayUnitSystem;
+///
+/// let options = DisplayOptions::new()
+///     .unit_system(DisplayUnitSystem::Decimal)
+///     .scale(DisplayScale::Mega);
+///
+/// assert_eq!(
+///     "1.500 MB",
+///     format!("{:.3}", bsize::display(1_500_000u64).options(options))
+/// );
+/// ```
 #[derive(Debug, Clone)]
 pub struct Display {
     size: f64,
     options: DisplayOptions,
 }
 
-/// Display formatting options.
+/// Formatting options for [`Display`].
+///
+/// See [`Display`] for examples.
 #[derive(Debug, Clone, Copy)]
 pub struct DisplayOptions {
     base_unit: DisplayBaseUnit,
@@ -61,6 +130,8 @@ pub struct DisplayOptions {
 
 impl DisplayOptions {
     /// The default binary display options.
+    ///
+    /// See [`Display`] for examples.
     pub const BINARY: Self = Self {
         base_unit: DisplayBaseUnit::Byte,
         scale: DisplayScale::Auto,
@@ -68,19 +139,25 @@ impl DisplayOptions {
     };
 
     /// Decimal display options.
+    ///
+    /// See [`Display`] for examples.
     pub const DECIMAL: Self = Self {
         base_unit: DisplayBaseUnit::Byte,
         scale: DisplayScale::Auto,
         unit_system: DisplayUnitSystem::Decimal,
     };
 
-    /// Construct a new [`DisplayOptions`] with the [`BINARY`](Self::BINARY) preset.
+    /// Construct a new instance with the `BINARY` preset.
+    ///
+    /// See [`Display`] for examples.
     #[inline(always)]
     pub const fn new() -> Self {
         DisplayOptions::BINARY
     }
 
     /// Set the base unit used for display.
+    ///
+    /// See [`Display`] for examples.
     #[inline(always)]
     pub const fn base_unit(mut self, base_unit: DisplayBaseUnit) -> Self {
         self.base_unit = base_unit;
@@ -88,6 +165,8 @@ impl DisplayOptions {
     }
 
     /// Set the display scale.
+    ///
+    /// See [`Display`] for examples.
     #[inline(always)]
     pub const fn scale(mut self, scale: DisplayScale) -> Self {
         self.scale = scale;
@@ -95,6 +174,8 @@ impl DisplayOptions {
     }
 
     /// Set the unit system used for display.
+    ///
+    /// See [`Display`] for examples.
     #[inline(always)]
     pub const fn unit_system(mut self, unit_system: DisplayUnitSystem) -> Self {
         self.unit_system = unit_system;
@@ -109,19 +190,33 @@ impl Default for DisplayOptions {
     }
 }
 
-/// Base unit used for display.
+/// Base unit used by [`DisplayOptions`].
+///
+/// See [`Display`] for examples.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum DisplayBaseUnit {
     /// Format values as bits.
     ///
     /// The byte count is converted to bits for display.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bsize::DisplayBaseUnit;
+    /// use bsize::DisplayOptions;
+    ///
+    /// let options = DisplayOptions::new().base_unit(DisplayBaseUnit::Bit);
+    /// assert_eq!("8 bit", bsize::display(1usize).options(options).to_string());
+    /// ```
     Bit,
     /// Format values as bytes.
     Byte,
 }
 
-/// Display scale.
+/// Scale used by [`DisplayOptions`].
+///
+/// See [`Display`] for examples.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum DisplayScale {
@@ -143,7 +238,9 @@ pub enum DisplayScale {
     Exa,
 }
 
-/// Unit system used for display.
+/// Unit system used by [`DisplayOptions`].
+///
+/// See [`Display`] for examples.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum DisplayUnitSystem {
@@ -154,19 +251,25 @@ pub enum DisplayUnitSystem {
 }
 
 impl Display {
-    /// Set the display option to the preset [`DisplayOptions::BINARY`].
+    /// Set the display option to the [`DisplayOptions::BINARY`] preset.
+    ///
+    /// See [`Display`] for examples.
     pub fn binary(mut self) -> Self {
         self.options = DisplayOptions::BINARY;
         self
     }
 
-    /// Set the display option to the preset [`DisplayOptions::DECIMAL`].
+    /// Set the display option to the [`DisplayOptions::DECIMAL`] preset.
+    ///
+    /// See [`Display`] for examples.
     pub fn decimal(mut self) -> Self {
         self.options = DisplayOptions::DECIMAL;
         self
     }
 
     /// Set the options for display.
+    ///
+    /// See [`Display`] for examples.
     pub fn options(mut self, options: DisplayOptions) -> Self {
         self.options = options;
         self
