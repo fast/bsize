@@ -85,10 +85,12 @@ mod ops;
 mod parse;
 #[cfg(feature = "serde")]
 mod serde;
+mod traits;
 mod types;
-mod unsigned;
 
 pub use self::display::Display;
+pub use self::display::display;
 pub use self::parse::ParseError;
+pub use self::traits::ByteSize;
+pub use self::traits::Displayable;
 pub use self::types::BSize;
-pub use self::unsigned::Unsigned;
