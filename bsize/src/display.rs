@@ -22,6 +22,13 @@ pub fn display(size: impl Displayable) -> Display {
     Display::new(size.canonicalize())
 }
 
+impl<T: Displayable> BSize<T> {
+    /// Returns a display wrapper.
+    pub fn display(&self) -> Display {
+        Display::new(self.0.canonicalize())
+    }
+}
+
 /// Display wrapper for [`BSize`].
 ///
 /// # Examples
@@ -183,18 +190,6 @@ impl fmt::Display for Display {
         };
         let (value, exponent) = scaled_value(value, divisor, self.options.scale);
 
-        let unit_prefixes = match self.options.unit_system {
-            DisplayUnitSystem::Binary => b"KMGTPE",
-            DisplayUnitSystem::Decimal => b"kMGTPE",
-        };
-        let unit_separator = " ";
-        let unit_suffix = match (self.options.unit_system, self.options.base_unit) {
-            (DisplayUnitSystem::Binary, DisplayBaseUnit::Bit) => "ibit",
-            (DisplayUnitSystem::Binary, DisplayBaseUnit::Byte) => "iB",
-            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Bit) => "bit",
-            (DisplayUnitSystem::Decimal, DisplayBaseUnit::Byte) => "B",
-        };
-
         if let Some(precision) = f.precision() {
             write!(f, "{value:.precision$}")?;
         } else if exponent == 0 {
@@ -203,6 +198,7 @@ impl fmt::Display for Display {
             write!(f, "{value:.1}")?;
         }
 
+        let unit_separator = " ";
         f.write_str(unit_separator)?;
 
         if exponent == 0 {
@@ -211,6 +207,19 @@ impl fmt::Display for Display {
                 DisplayBaseUnit::Byte => "B",
             })
         } else {
+            // Unit system references
+            // * https://en.wikipedia.org/wiki/Kilobyte
+            // * https://en.wikipedia.org/wiki/Bit#Multiple_bits
+            let unit_prefixes = match self.options.unit_system {
+                DisplayUnitSystem::Binary => b"KMGTPE",
+                DisplayUnitSystem::Decimal => b"kMGTPE",
+            };
+            let unit_suffix = match (self.options.unit_system, self.options.base_unit) {
+                (DisplayUnitSystem::Binary, DisplayBaseUnit::Bit) => "ibit",
+                (DisplayUnitSystem::Binary, DisplayBaseUnit::Byte) => "iB",
+                (DisplayUnitSystem::Decimal, DisplayBaseUnit::Bit) => "bit",
+                (DisplayUnitSystem::Decimal, DisplayBaseUnit::Byte) => "B",
+            };
             let unit_prefix = unit_prefixes[exponent - 1] as char;
             write!(f, "{unit_prefix}{unit_suffix}")
         }
@@ -243,13 +252,6 @@ fn scaled_value(mut value: f64, divisor: f64, scale: DisplayScale) -> (f64, usiz
     }
 
     (value, exponent)
-}
-
-impl<T: Displayable> BSize<T> {
-    /// Returns a display wrapper.
-    pub fn display(&self) -> Display {
-        Display::new(self.0.canonicalize())
-    }
 }
 
 #[cfg(test)]
