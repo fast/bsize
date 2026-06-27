@@ -37,7 +37,7 @@ jobs:
     name: Check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@nightly
         with:
@@ -54,12 +54,12 @@ jobs:
     outputs:
       rust-versions: ${{ steps.metadata.outputs.rust-versions }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - id: metadata
         run: |
           msrv=$(yq '.workspace.package.rust-version' Cargo.toml)
           echo "MSRV: $msrv"
-          echo "rust-versions=[\"${msrv}\", \"stable\"]" >> "$GITHUB_OUTPUT"
+          echo "rust-versions=[\"${msrv}\", \"stable\", \"nightly\"]" >> "$GITHUB_OUTPUT"
 
   test:
     name: Run tests
@@ -70,10 +70,8 @@ jobs:
         rust-version: ${{ fromJson(needs.msrv.outputs.rust-versions) }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
-      - name: Delete rust-toolchain.toml
-        run: rm rust-toolchain.toml
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -90,10 +88,8 @@ jobs:
         rust-version: ${{ fromJson(needs.msrv.outputs.rust-versions) }}
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
-      - name: Delete rust-toolchain.toml
-        run: rm rust-toolchain.toml
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -102,7 +98,11 @@ jobs:
       - name: Check no_std
         run: |
           cargo check -p bsize --no-default-features --target thumbv7em-none-eabihf
-          cargo check -p bsize --all-features --target thumbv7em-none-eabihf
+          cargo check -p bsize --no-default-features --features serde --target thumbv7em-none-eabihf
+          if [[ "${{ matrix.rust-version }}" == "nightly" ]]; then
+            cargo check -p bsize --no-default-features --features nightly --target thumbv7em-none-eabihf
+            cargo check -p bsize --no-default-features --features nightly,serde --target thumbv7em-none-eabihf
+          fi
         shell: bash
 
   required:

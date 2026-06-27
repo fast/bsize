@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(feature = "nightly", feature(const_ops, const_trait_impl))]
 #![deny(missing_docs)]
 
 //! This crate provides multiple semantic wrappers and utilities for byte size representations.
@@ -27,6 +28,8 @@
 //! * [`Display`] impl for `BSize`, allowing for formatting byte sizes as human-readable strings in
 //!   both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
 //! * Optional `serde` support for binary and human-readable format.
+//! * Optional `nightly` support for generic const unit constructors, allowing calls like
+//!   `BSize::kib(16_u64)`.
 //!
 //! # Examples
 //!
@@ -117,6 +120,12 @@ pub use self::display::display;
 pub use self::parse::ParseError;
 pub use self::traits::ByteSize;
 pub use self::traits::Displayable;
+pub use self::traits::ExaByteSize;
+pub use self::traits::GigaByteSize;
+pub use self::traits::KiloByteSize;
+pub use self::traits::MegaByteSize;
+pub use self::traits::PetaByteSize;
+pub use self::traits::TeraByteSize;
 pub use self::types::BSize;
 
 #[cfg(test)]
