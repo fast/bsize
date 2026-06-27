@@ -84,12 +84,13 @@ The [`bytesize`](https://crates.io/crates/bytesize) crate provides a `ByteSize` 
 
 I was more than happy to try `bytesize` at first. However, I found that it does not provide a way to specify the underlying integer type for the byte size. It uses `u64` internally, while most of the constants shown above are of type `usize`. This means that I have to convert between `u64` and `usize` frequently, which is not ideal. See [this issue](https://github.com/bytesize-rs/bytesize/issues/135) for more details.
 
-What's more, to support calculations between `BSize` and numeric types, this crate simply implements a `BSize::with` function and avoids implementing arithmetic traits. The latter would cause confusions like what result type should be used for `ByteSize + u64`. However, `BSize` implements arithmetic traits for calculations between `BSize` and `BSize`, which is more intuitive and less error-prone.
+What's more, to support calculations between `BSize` and numeric types, this crate implements `BSize::map` for producing a new `BSize`, and `BSize::with` for producing an arbitrary result from the underlying byte count. This avoids implementing arithmetic traits for calculations between `BSize` and numeric types. The latter would cause confusions like what result type should be used for `ByteSize + u64`. However, `BSize` implements arithmetic traits for calculations between `BSize` and `BSize`, which is more intuitive and less error-prone.
 
 ```rust
 let result = ByteSize::kib(4) + 64; // Is the result type ByteSize or u64? Why?
-let result = BSize::<u64>::kib(4).with(|b| b + 64); // Clearly the result type is BSize.
+let result = BSize::<u64>::kib(4).map(|b| b + 64); // Clearly the result type is BSize.
 let result = BSize::<u64>::kib(4).0 + 64; // Clearly the result type is u64.
+let result = BSize::<u64>::kib(4).with(|b| b + 64); // when .0 is cumbersome sometimes, this is more convenient.
 ```
 
 There is no `Unit` as well. To obtain a constant for a specific unit, you can use `BSize::<u64>::kib(1).0` and this can be resolved at compile time.

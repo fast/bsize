@@ -45,7 +45,7 @@
 //!
 //! let size: BSize<u64> = "1.5 MiB".parse().unwrap();
 //!
-//! assert_eq!(BSize::<u64>::mib(1).with(|bytes| bytes + 512 * 1024), size,);
+//! assert_eq!(BSize::<u64>::mib(1).map(|bytes| bytes + 512 * 1024), size);
 //! ```
 //!
 //! Display as human-readable string.
@@ -91,7 +91,7 @@
 //! use bsize::BSize;
 //!
 //! let size = BSize::<usize>::mb(1);
-//! let size = size.with(|b| b * 4); // 4x scale
+//! let size = size.map(|b| b * 4); // 4x scale
 //! println!("{size}");
 //! ```
 
