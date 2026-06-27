@@ -4,6 +4,10 @@ All significant changes to this software be documented in this file.
 
 ## Unreleased
 
+### Breaking changes
+
+* Rename `BSize::with` to `BSize::map`. A new `BSize::with` method has been added that accepts a closure returning arbitrary type, allowing for mapping a `BSize` to any other type. This follows `LocalKey::with`'s naming conventions.
+
 ## v0.2.1 (2026-06-27)
 
 ### New features

@@ -40,8 +40,13 @@ impl<T: ByteSize + fmt::Display> fmt::Display for BSize<T> {
 
 impl<T: ByteSize> BSize<T> {
     /// Calculate a new byte size with the provided function, returning a new struct.
-    pub fn with(self, f: impl FnOnce(T) -> T) -> Self {
+    pub fn map(self, f: impl FnOnce(T) -> T) -> Self {
         BSize(f(self.0))
+    }
+
+    /// Calculate a new value with the provided function.
+    pub fn with<R>(self, f: impl FnOnce(T) -> R) -> R {
+        f(self.0)
     }
 
     /// Constructs a byte size wrapper from a quantity of bytes.
@@ -234,6 +239,19 @@ mod tests {
     #[test]
     fn constructs_u8_units() {
         assert_eq!(BSize::<u8>::b(2).0, 2);
+    }
+
+    #[test]
+    fn maps_underlying_byte_count() {
+        assert_eq!(
+            BSize::<u64>::kib(4).map(|bytes| bytes + 64),
+            BSize::b(4_160),
+        );
+    }
+
+    #[test]
+    fn with_returns_closure_result() {
+        assert!(BSize::<u64>::kib(4).with(|bytes| bytes == 4_096));
     }
 
     #[test]
