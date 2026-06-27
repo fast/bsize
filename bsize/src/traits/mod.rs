@@ -27,6 +27,173 @@ mod private {
 pub trait ByteSize: private::Sealed {}
 impl_marker!(ByteSize for u8, u16, u32, u64, usize);
 
+macro_rules! define_unit_traits {
+    (
+        trait_prefix = [$($trait_prefix:tt)*];
+        const_bound = [$($const_bound:tt)*];
+    ) => {
+        /// A trait for byte size payload types that can represent kilobyte-scale units.
+        pub $($trait_prefix)* trait KiloByteSize: ByteSize + $($const_bound)* Mul<Output = Self> + Sized {
+            /// Number of bytes in one kilobyte.
+            const KB: Self;
+
+            /// Number of bytes in one kibibyte.
+            const KIB: Self;
+        }
+
+        /// A trait for byte size payload types that can represent megabyte-scale units.
+        pub $($trait_prefix)* trait MegaByteSize: $($const_bound)* KiloByteSize {
+            /// Number of bytes in one megabyte.
+            const MB: Self;
+
+            /// Number of bytes in one mebibyte.
+            const MIB: Self;
+        }
+
+        /// A trait for byte size payload types that can represent gigabyte-scale units.
+        pub $($trait_prefix)* trait GigaByteSize: $($const_bound)* MegaByteSize {
+            /// Number of bytes in one gigabyte.
+            const GB: Self;
+
+            /// Number of bytes in one gibibyte.
+            const GIB: Self;
+        }
+
+        /// A trait for byte size payload types that can represent terabyte-scale units.
+        pub $($trait_prefix)* trait TeraByteSize: $($const_bound)* GigaByteSize {
+            /// Number of bytes in one terabyte.
+            const TB: Self;
+
+            /// Number of bytes in one tebibyte.
+            const TIB: Self;
+        }
+
+        /// A trait for byte size payload types that can represent petabyte-scale units.
+        pub $($trait_prefix)* trait PetaByteSize: $($const_bound)* TeraByteSize {
+            /// Number of bytes in one petabyte.
+            const PB: Self;
+
+            /// Number of bytes in one pebibyte.
+            const PIB: Self;
+        }
+
+        /// A trait for byte size payload types that can represent exabyte-scale units.
+        pub $($trait_prefix)* trait ExaByteSize: $($const_bound)* PetaByteSize {
+            /// Number of bytes in one exabyte.
+            const EB: Self;
+
+            /// Number of bytes in one exbibyte.
+            const EIB: Self;
+        }
+    };
+}
+
+macro_rules! impl_size_trait {
+    ([$($impl_prefix:tt)*] $trait:ident for $ty:ty { $($name:ident = $value:literal),* $(,)? }) => {
+        $($impl_prefix)* impl $trait for $ty {
+            $(const $name: Self = $value;)*
+        }
+    };
+}
+
+macro_rules! impl_usize_size_traits {
+    ([$($impl_prefix:tt)*] through_kilo) => {
+        impl_size_trait!([$($impl_prefix)*] KiloByteSize for usize {
+            KB = 1_000,
+            KIB = 1_024,
+        });
+    };
+    ([$($impl_prefix:tt)*] through_giga) => {
+        impl_usize_size_traits!([$($impl_prefix)*] through_kilo);
+        impl_size_trait!([$($impl_prefix)*] MegaByteSize for usize {
+            MB = 1_000_000,
+            MIB = 1_048_576,
+        });
+        impl_size_trait!([$($impl_prefix)*] GigaByteSize for usize {
+            GB = 1_000_000_000,
+            GIB = 1_073_741_824,
+        });
+    };
+    ([$($impl_prefix:tt)*] through_exa) => {
+        impl_usize_size_traits!([$($impl_prefix)*] through_giga);
+        impl_size_trait!([$($impl_prefix)*] TeraByteSize for usize {
+            TB = 1_000_000_000_000,
+            TIB = 1_099_511_627_776,
+        });
+        impl_size_trait!([$($impl_prefix)*] PetaByteSize for usize {
+            PB = 1_000_000_000_000_000,
+            PIB = 1_125_899_906_842_624,
+        });
+        impl_size_trait!([$($impl_prefix)*] ExaByteSize for usize {
+            EB = 1_000_000_000_000_000_000,
+            EIB = 1_152_921_504_606_846_976,
+        });
+    };
+}
+
+macro_rules! impl_unit_traits {
+    (impl_prefix = [$($impl_prefix:tt)*];) => {
+        impl_size_trait!([$($impl_prefix)*] KiloByteSize for u16 {
+            KB = 1_000,
+            KIB = 1_024,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] KiloByteSize for u32 {
+            KB = 1_000,
+            KIB = 1_024,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] MegaByteSize for u32 {
+            MB = 1_000_000,
+            MIB = 1_048_576,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] GigaByteSize for u32 {
+            GB = 1_000_000_000,
+            GIB = 1_073_741_824,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] KiloByteSize for u64 {
+            KB = 1_000,
+            KIB = 1_024,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] MegaByteSize for u64 {
+            MB = 1_000_000,
+            MIB = 1_048_576,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] GigaByteSize for u64 {
+            GB = 1_000_000_000,
+            GIB = 1_073_741_824,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] TeraByteSize for u64 {
+            TB = 1_000_000_000_000,
+            TIB = 1_099_511_627_776,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] PetaByteSize for u64 {
+            PB = 1_000_000_000_000_000,
+            PIB = 1_125_899_906_842_624,
+        });
+
+        impl_size_trait!([$($impl_prefix)*] ExaByteSize for u64 {
+            EB = 1_000_000_000_000_000_000,
+            EIB = 1_152_921_504_606_846_976,
+        });
+
+        #[cfg(target_pointer_width = "16")]
+        impl_usize_size_traits!([$($impl_prefix)*] through_kilo);
+
+        #[cfg(target_pointer_width = "32")]
+        impl_usize_size_traits!([$($impl_prefix)*] through_giga);
+
+        #[cfg(target_pointer_width = "64")]
+        impl_usize_size_traits!([$($impl_prefix)*] through_exa);
+    };
+}
+
 #[cfg(feature = "nightly")]
 mod nightly;
 #[cfg(not(feature = "nightly"))]

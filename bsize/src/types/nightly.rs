@@ -20,207 +20,58 @@ use crate::traits::MegaByteSize;
 use crate::traits::PetaByteSize;
 use crate::traits::TeraByteSize;
 
-macro_rules! impl_accessors {
-    ($ty:ty => { $($name:ident = $size:literal => $unit:literal),* $(,)? }) => {
-        impl BSize<$ty> {
+macro_rules! impl_constructors {
+    ($trait:ident => { $($name:ident = $size:ident),* $(,)? }) => {
+        impl<T: $trait> BSize<T> {
             $(
-                #[doc = concat!("Returns byte count as ", $unit, ".")]
-                ///
-                /// The result is approximate when the byte count cannot be
-                /// represented exactly as `f64`.
+                #[doc = concat!(
+                    "Constructs a byte size wrapper from a quantity of `",
+                    stringify!($name),
+                    "` units."
+                )]
                 #[inline(always)]
-                pub const fn $name(&self) -> f64 {
-                    (self.0 as f64) / ($size as f64)
+                pub const fn $name(size: T) -> Self
+                where
+                    T: [const] $trait,
+                {
+                    BSize(size * T::$size)
                 }
             )*
         }
     };
 }
 
-macro_rules! impl_usize_accessors {
-    (through_kilo) => {
-        impl_accessors!(usize => {
-            as_kb = 1_000usize => "kilobytes",
-            as_kib = 1_024usize => "kibibytes",
-        });
-    };
-    (through_giga) => {
-        impl_usize_accessors!(through_kilo);
-        impl_accessors!(usize => {
-            as_mb = 1_000_000usize => "megabytes",
-            as_mib = 1_048_576usize => "mebibytes",
-            as_gb = 1_000_000_000usize => "gigabytes",
-            as_gib = 1_073_741_824usize => "gibibytes",
-        });
-    };
-    (through_exa) => {
-        impl_usize_accessors!(through_giga);
-        impl_accessors!(usize => {
-            as_tb = 1_000_000_000_000usize => "terabytes",
-            as_tib = 1_099_511_627_776usize => "tebibytes",
-            as_pb = 1_000_000_000_000_000usize => "petabytes",
-            as_pib = 1_125_899_906_842_624usize => "pebibytes",
-            as_eb = 1_000_000_000_000_000_000usize => "exabytes",
-            as_eib = 1_152_921_504_606_846_976usize => "exbibytes",
-        });
-    };
-}
-
-impl<T: KiloByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `kb` units.
-    #[inline(always)]
-    pub const fn kb(size: T) -> Self
-    where
-        T: [const] KiloByteSize,
-    {
-        BSize(size * T::KB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `kib` units.
-    #[inline(always)]
-    pub const fn kib(size: T) -> Self
-    where
-        T: [const] KiloByteSize,
-    {
-        BSize(size * T::KIB)
-    }
-}
-
-impl<T: MegaByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `mb` units.
-    #[inline(always)]
-    pub const fn mb(size: T) -> Self
-    where
-        T: [const] MegaByteSize,
-    {
-        BSize(size * T::MB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `mib` units.
-    #[inline(always)]
-    pub const fn mib(size: T) -> Self
-    where
-        T: [const] MegaByteSize,
-    {
-        BSize(size * T::MIB)
-    }
-}
-
-impl<T: GigaByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `gb` units.
-    #[inline(always)]
-    pub const fn gb(size: T) -> Self
-    where
-        T: [const] GigaByteSize,
-    {
-        BSize(size * T::GB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `gib` units.
-    #[inline(always)]
-    pub const fn gib(size: T) -> Self
-    where
-        T: [const] GigaByteSize,
-    {
-        BSize(size * T::GIB)
-    }
-}
-
-impl<T: TeraByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `tb` units.
-    #[inline(always)]
-    pub const fn tb(size: T) -> Self
-    where
-        T: [const] TeraByteSize,
-    {
-        BSize(size * T::TB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `tib` units.
-    #[inline(always)]
-    pub const fn tib(size: T) -> Self
-    where
-        T: [const] TeraByteSize,
-    {
-        BSize(size * T::TIB)
-    }
-}
-
-impl<T: PetaByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `pb` units.
-    #[inline(always)]
-    pub const fn pb(size: T) -> Self
-    where
-        T: [const] PetaByteSize,
-    {
-        BSize(size * T::PB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `pib` units.
-    #[inline(always)]
-    pub const fn pib(size: T) -> Self
-    where
-        T: [const] PetaByteSize,
-    {
-        BSize(size * T::PIB)
-    }
-}
-
-impl<T: ExaByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `eb` units.
-    #[inline(always)]
-    pub const fn eb(size: T) -> Self
-    where
-        T: [const] ExaByteSize,
-    {
-        BSize(size * T::EB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `eib` units.
-    #[inline(always)]
-    pub const fn eib(size: T) -> Self
-    where
-        T: [const] ExaByteSize,
-    {
-        BSize(size * T::EIB)
-    }
-}
-
-impl_accessors!(u16 => {
-    as_kb = 1_000u16 => "kilobytes",
-    as_kib = 1_024u16 => "kibibytes",
+impl_constructors!(KiloByteSize => {
+    kb = KB,
+    kib = KIB,
 });
 
-impl_accessors!(u32 => {
-    as_kb = 1_000u32 => "kilobytes",
-    as_kib = 1_024u32 => "kibibytes",
-    as_mb = 1_000_000u32 => "megabytes",
-    as_mib = 1_048_576u32 => "mebibytes",
-    as_gb = 1_000_000_000u32 => "gigabytes",
-    as_gib = 1_073_741_824u32 => "gibibytes",
+impl_constructors!(MegaByteSize => {
+    mb = MB,
+    mib = MIB,
 });
 
-impl_accessors!(u64 => {
-    as_kb = 1_000u64 => "kilobytes",
-    as_kib = 1_024u64 => "kibibytes",
-    as_mb = 1_000_000u64 => "megabytes",
-    as_mib = 1_048_576u64 => "mebibytes",
-    as_gb = 1_000_000_000u64 => "gigabytes",
-    as_gib = 1_073_741_824u64 => "gibibytes",
-    as_tb = 1_000_000_000_000u64 => "terabytes",
-    as_tib = 1_099_511_627_776u64 => "tebibytes",
-    as_pb = 1_000_000_000_000_000u64 => "petabytes",
-    as_pib = 1_125_899_906_842_624u64 => "pebibytes",
-    as_eb = 1_000_000_000_000_000_000u64 => "exabytes",
-    as_eib = 1_152_921_504_606_846_976u64 => "exbibytes",
+impl_constructors!(GigaByteSize => {
+    gb = GB,
+    gib = GIB,
 });
 
-#[cfg(target_pointer_width = "16")]
-impl_usize_accessors!(through_kilo);
-#[cfg(target_pointer_width = "32")]
-impl_usize_accessors!(through_giga);
-#[cfg(target_pointer_width = "64")]
-impl_usize_accessors!(through_exa);
+impl_constructors!(TeraByteSize => {
+    tb = TB,
+    tib = TIB,
+});
+
+impl_constructors!(PetaByteSize => {
+    pb = PB,
+    pib = PIB,
+});
+
+impl_constructors!(ExaByteSize => {
+    eb = EB,
+    eib = EIB,
+});
+
+impl_unit_accessors!();
 
 #[cfg(test)]
 mod tests {
