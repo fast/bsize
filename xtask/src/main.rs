@@ -77,6 +77,10 @@ impl CommandTest {
     fn run(self) {
         run_command(make_test_cmd(self.no_capture, &[]));
         run_command(make_test_cmd(self.no_capture, &["serde"]));
+        if rustversion::cfg!(nightly) {
+            run_command(make_test_cmd(self.no_capture, &["nightly"]));
+            run_command(make_test_cmd(self.no_capture, &["nightly", "serde"]));
+        }
     }
 }
 
@@ -150,7 +154,7 @@ fn make_test_cmd(no_capture: bool, features: &[&str]) -> StdCommand {
     let mut cmd = find_command("cargo");
     cmd.args(["test", "--workspace", "--no-default-features"]);
     if !features.is_empty() {
-        cmd.args(["--features", features.join(",").as_str()]);
+        cmd.arg("--features").arg(features.join(","));
     }
     if no_capture {
         cmd.args(["--", "--nocapture"]);
