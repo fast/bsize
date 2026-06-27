@@ -89,53 +89,53 @@ mod tests {
 
     #[test]
     fn infers_constructor_type_from_argument() {
-        assert_eq!(BSize::kib(16_u64), BSize::<u64>::b(16 * 1_024));
-        assert_eq!(BSize::mib(16_u32), BSize::<u32>::b(16 * 1_048_576));
+        assert_eq!(BSize::kib(16_u64), BSize::b(16 * 1_024));
+        assert_eq!(BSize::mib(16_u32), BSize::b(16 * 1_048_576));
     }
 
     #[test]
     fn inferred_constructor_is_const() {
         const SIZE: BSize<u64> = BSize::kib(16_u64);
 
-        assert_eq!(SIZE, BSize::<u64>::b(16 * 1_024));
+        assert_eq!(SIZE, BSize::b(16 * 1_024));
     }
 
     #[cfg(target_pointer_width = "16")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
+        assert_eq!(BSize::kb(2_usize).0, 2_000);
+        assert_eq!(BSize::kib(2_usize).0, 2_048);
+        assert_close(BSize::kb(2_usize).as_kb(), 2.0);
+        assert_close(BSize::kib(2_usize).as_kib(), 2.0);
     }
 
     #[cfg(target_pointer_width = "32")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
-        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
-        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
-        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
+        assert_eq!(BSize::kb(2_usize).0, 2_000);
+        assert_eq!(BSize::kib(2_usize).0, 2_048);
+        assert_close(BSize::kb(2_usize).as_kb(), 2.0);
+        assert_close(BSize::kib(2_usize).as_kib(), 2.0);
+        assert_eq!(BSize::gb(2_usize).0, 2_000_000_000);
+        assert_eq!(BSize::gib(2_usize).0, 2_147_483_648);
+        assert_close(BSize::gb(2_usize).as_gb(), 2.0);
+        assert_close(BSize::gib(2_usize).as_gib(), 2.0);
     }
 
     #[cfg(target_pointer_width = "64")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
-        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
-        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
-        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
-        assert_eq!(BSize::<usize>::eb(2).0, 2_000_000_000_000_000_000);
-        assert_eq!(BSize::<usize>::eib(2).0, 2_305_843_009_213_693_952);
-        assert_close(BSize::<usize>::eb(2).as_eb(), 2.0);
-        assert_close(BSize::<usize>::eib(2).as_eib(), 2.0);
+        assert_eq!(BSize::kb(2_usize).0, 2_000);
+        assert_eq!(BSize::kib(2_usize).0, 2_048);
+        assert_close(BSize::kb(2_usize).as_kb(), 2.0);
+        assert_close(BSize::kib(2_usize).as_kib(), 2.0);
+        assert_eq!(BSize::gb(2_usize).0, 2_000_000_000);
+        assert_eq!(BSize::gib(2_usize).0, 2_147_483_648);
+        assert_close(BSize::gb(2_usize).as_gb(), 2.0);
+        assert_close(BSize::gib(2_usize).as_gib(), 2.0);
+        assert_eq!(BSize::eb(2_usize).0, 2_000_000_000_000_000_000);
+        assert_eq!(BSize::eib(2_usize).0, 2_305_843_009_213_693_952);
+        assert_close(BSize::eb(2_usize).as_eb(), 2.0);
+        assert_close(BSize::eib(2_usize).as_eib(), 2.0);
     }
 }

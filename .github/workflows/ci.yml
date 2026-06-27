@@ -72,14 +72,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
-      - name: Delete rust-toolchain.toml
-        run: rm rust-toolchain.toml
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust-version }}
       - name: Run unit tests
         run: cargo x test --no-capture
+        shell: bash
 
   no_std:
     name: Check no_std
@@ -91,8 +90,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
-      - name: Delete rust-toolchain.toml
-        run: rm rust-toolchain.toml
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@master
         with:
