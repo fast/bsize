@@ -52,11 +52,18 @@ enum SubCommand {
 struct CommandBuild {
     #[arg(long, help = "Assert that `Cargo.lock` will remain unchanged.")]
     locked: bool,
+
+    #[arg(
+        long,
+        value_delimiter = ',',
+        help = "Enable package features for the build."
+    )]
+    features: Vec<String>,
 }
 
 impl CommandBuild {
     fn run(self) {
-        run_command(make_build_cmd(self.locked));
+        run_command(make_build_cmd(self.locked, &self.features));
     }
 }
 
@@ -117,17 +124,22 @@ fn run_command(mut cmd: StdCommand) {
     assert!(status.success(), "command failed: {status}");
 }
 
-fn make_build_cmd(locked: bool) -> StdCommand {
+fn make_build_cmd(locked: bool, features: &[String]) -> StdCommand {
     let mut cmd = find_command("cargo");
+    if features.iter().any(|feature| feature == "nightly") {
+        cmd.arg("+nightly");
+    }
     cmd.args([
         "build",
         "--workspace",
-        "--all-features",
         "--tests",
         "--examples",
         "--benches",
         "--bins",
     ]);
+    if !features.is_empty() {
+        cmd.arg("--features").arg(features.join(","));
+    }
     if locked {
         cmd.arg("--locked");
     }

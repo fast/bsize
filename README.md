@@ -25,6 +25,7 @@ This crate provides multiple semantic wrappers and utilities for byte size repre
 * `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB".
 * `Display` impl for `BSize`, allowing for formatting byte sizes as human-readable strings in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
 * Optional `serde` support for binary and human-readable format.
+* Optional `nightly` support for generic const unit constructors, allowing calls like `BSize::kib(16_u64)`.
 
 ## Documentation
 

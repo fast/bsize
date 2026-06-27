@@ -34,6 +34,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = []
+nightly = []
 serde = ["dep:serde_core"]
 
 [dependencies]

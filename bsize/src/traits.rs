@@ -27,6 +27,16 @@ mod private {
 pub trait ByteSize: private::Sealed {}
 impl_marker!(ByteSize for u8, u16, u32, u64, usize);
 
+#[cfg(feature = "nightly")]
+mod nightly;
+#[cfg(not(feature = "nightly"))]
+mod stable;
+
+#[cfg(feature = "nightly")]
+pub use self::nightly::*;
+#[cfg(not(feature = "nightly"))]
+pub use self::stable::*;
+
 /// A trait for all displayable byte size underneath type.
 pub trait Displayable: ByteSize {
     /// Convert the byte size payload to a canonicalized floating point representation,

@@ -56,6 +56,7 @@ impl<T: ByteSize> BSize<T> {
     }
 }
 
+#[cfg(not(feature = "nightly"))]
 macro_rules! impl_constructors {
     ($ty:ty => { $($name:ident = $size:literal),* $(,)? }) => {
         impl BSize<$ty> {
@@ -74,11 +75,13 @@ macro_rules! impl_constructors {
     };
 }
 
+#[cfg(not(feature = "nightly"))]
 impl_constructors!(u16 => {
     kb = 1_000,
     kib = 1_024,
 });
 
+#[cfg(not(feature = "nightly"))]
 impl_constructors!(u32 => {
     kb = 1_000,
     kib = 1_024,
@@ -88,6 +91,7 @@ impl_constructors!(u32 => {
     gib = 1_073_741_824,
 });
 
+#[cfg(not(feature = "nightly"))]
 impl_constructors!(u64 => {
     kb = 1_000,
     kib = 1_024,
@@ -103,13 +107,13 @@ impl_constructors!(u64 => {
     eib = 1_152_921_504_606_846_976,
 });
 
-#[cfg(target_pointer_width = "16")]
+#[cfg(all(not(feature = "nightly"), target_pointer_width = "16"))]
 impl_constructors!(usize => {
     kb = 1_000,
     kib = 1_024,
 });
 
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(not(feature = "nightly"), target_pointer_width = "32"))]
 impl_constructors!(usize => {
     kb = 1_000,
     kib = 1_024,
@@ -119,7 +123,7 @@ impl_constructors!(usize => {
     gib = 1_073_741_824,
 });
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(all(not(feature = "nightly"), target_pointer_width = "64"))]
 impl_constructors!(usize => {
     kb = 1_000,
     kib = 1_024,
@@ -134,6 +138,9 @@ impl_constructors!(usize => {
     eb = 1_000_000_000_000_000_000,
     eib = 1_152_921_504_606_846_976,
 });
+
+#[cfg(feature = "nightly")]
+mod nightly;
 
 macro_rules! impl_accessors {
     ($ty:ty => { $($name:ident = $size:literal => $unit:literal),* $(,)? }) => {
@@ -252,6 +259,21 @@ mod tests {
     #[test]
     fn with_returns_closure_result() {
         assert!(BSize::<u64>::kib(4).with(|bytes| bytes == 4_096));
+    }
+
+    #[cfg(feature = "nightly")]
+    #[test]
+    fn infers_constructor_type_from_argument() {
+        assert_eq!(BSize::kib(16_u64), BSize::<u64>::b(16 * 1_024));
+        assert_eq!(BSize::mib(16_u32), BSize::<u32>::b(16 * 1_048_576));
+    }
+
+    #[cfg(feature = "nightly")]
+    #[test]
+    fn inferred_constructor_is_const() {
+        const SIZE: BSize<u64> = BSize::kib(16_u64);
+
+        assert_eq!(SIZE, BSize::<u64>::b(16 * 1_024));
     }
 
     #[test]
