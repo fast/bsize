@@ -72,7 +72,7 @@ pub const trait ExaByteSize: [const] PetaByteSize {
 
 macro_rules! impl_size_trait {
     ($trait:ident for $ty:ty { $($name:ident = $value:literal),* $(,)? }) => {
-        impl const $trait for $ty {
+        const impl $trait for $ty {
             $(const $name: Self = $value;)*
         }
     };
