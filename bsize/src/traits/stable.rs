@@ -78,6 +78,41 @@ macro_rules! impl_size_trait {
     };
 }
 
+macro_rules! impl_usize_size_traits {
+    (through_kilo) => {
+        impl_size_trait!(KiloByteSize for usize {
+            KB = 1_000,
+            KIB = 1_024,
+        });
+    };
+    (through_giga) => {
+        impl_usize_size_traits!(through_kilo);
+        impl_size_trait!(MegaByteSize for usize {
+            MB = 1_000_000,
+            MIB = 1_048_576,
+        });
+        impl_size_trait!(GigaByteSize for usize {
+            GB = 1_000_000_000,
+            GIB = 1_073_741_824,
+        });
+    };
+    (through_exa) => {
+        impl_usize_size_traits!(through_giga);
+        impl_size_trait!(TeraByteSize for usize {
+            TB = 1_000_000_000_000,
+            TIB = 1_099_511_627_776,
+        });
+        impl_size_trait!(PetaByteSize for usize {
+            PB = 1_000_000_000_000_000,
+            PIB = 1_125_899_906_842_624,
+        });
+        impl_size_trait!(ExaByteSize for usize {
+            EB = 1_000_000_000_000_000_000,
+            EIB = 1_152_921_504_606_846_976,
+        });
+    };
+}
+
 impl_size_trait!(KiloByteSize for u16 {
     KB = 1_000,
     KIB = 1_024,
@@ -129,43 +164,8 @@ impl_size_trait!(ExaByteSize for u64 {
 });
 
 #[cfg(target_pointer_width = "16")]
-impl_size_trait!(KiloByteSize for usize {
-    KB = 1_000,
-    KIB = 1_024,
-});
-
-#[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
-impl_size_trait!(KiloByteSize for usize {
-    KB = 1_000,
-    KIB = 1_024,
-});
-
-#[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
-impl_size_trait!(MegaByteSize for usize {
-    MB = 1_000_000,
-    MIB = 1_048_576,
-});
-
-#[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
-impl_size_trait!(GigaByteSize for usize {
-    GB = 1_000_000_000,
-    GIB = 1_073_741_824,
-});
-
+impl_usize_size_traits!(through_kilo);
+#[cfg(target_pointer_width = "32")]
+impl_usize_size_traits!(through_giga);
 #[cfg(target_pointer_width = "64")]
-impl_size_trait!(TeraByteSize for usize {
-    TB = 1_000_000_000_000,
-    TIB = 1_099_511_627_776,
-});
-
-#[cfg(target_pointer_width = "64")]
-impl_size_trait!(PetaByteSize for usize {
-    PB = 1_000_000_000_000_000,
-    PIB = 1_125_899_906_842_624,
-});
-
-#[cfg(target_pointer_width = "64")]
-impl_size_trait!(ExaByteSize for usize {
-    EB = 1_000_000_000_000_000_000,
-    EIB = 1_152_921_504_606_846_976,
-});
+impl_usize_size_traits!(through_exa);

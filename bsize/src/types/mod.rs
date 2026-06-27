@@ -56,169 +56,10 @@ impl<T: ByteSize> BSize<T> {
     }
 }
 
-#[cfg(not(feature = "nightly"))]
-macro_rules! impl_constructors {
-    ($ty:ty => { $($name:ident = $size:literal),* $(,)? }) => {
-        impl BSize<$ty> {
-            $(
-                #[doc = concat!(
-                    "Constructs a byte size wrapper from a quantity of `",
-                    stringify!($name),
-                    "` units."
-                )]
-                #[inline(always)]
-                pub const fn $name(size: $ty) -> Self {
-                    BSize(size * $size)
-                }
-            )*
-        }
-    };
-}
-
-#[cfg(not(feature = "nightly"))]
-impl_constructors!(u16 => {
-    kb = 1_000,
-    kib = 1_024,
-});
-
-#[cfg(not(feature = "nightly"))]
-impl_constructors!(u32 => {
-    kb = 1_000,
-    kib = 1_024,
-    mb = 1_000_000,
-    mib = 1_048_576,
-    gb = 1_000_000_000,
-    gib = 1_073_741_824,
-});
-
-#[cfg(not(feature = "nightly"))]
-impl_constructors!(u64 => {
-    kb = 1_000,
-    kib = 1_024,
-    mb = 1_000_000,
-    mib = 1_048_576,
-    gb = 1_000_000_000,
-    gib = 1_073_741_824,
-    tb = 1_000_000_000_000,
-    tib = 1_099_511_627_776,
-    pb = 1_000_000_000_000_000,
-    pib = 1_125_899_906_842_624,
-    eb = 1_000_000_000_000_000_000,
-    eib = 1_152_921_504_606_846_976,
-});
-
-#[cfg(all(not(feature = "nightly"), target_pointer_width = "16"))]
-impl_constructors!(usize => {
-    kb = 1_000,
-    kib = 1_024,
-});
-
-#[cfg(all(not(feature = "nightly"), target_pointer_width = "32"))]
-impl_constructors!(usize => {
-    kb = 1_000,
-    kib = 1_024,
-    mb = 1_000_000,
-    mib = 1_048_576,
-    gb = 1_000_000_000,
-    gib = 1_073_741_824,
-});
-
-#[cfg(all(not(feature = "nightly"), target_pointer_width = "64"))]
-impl_constructors!(usize => {
-    kb = 1_000,
-    kib = 1_024,
-    mb = 1_000_000,
-    mib = 1_048_576,
-    gb = 1_000_000_000,
-    gib = 1_073_741_824,
-    tb = 1_000_000_000_000,
-    tib = 1_099_511_627_776,
-    pb = 1_000_000_000_000_000,
-    pib = 1_125_899_906_842_624,
-    eb = 1_000_000_000_000_000_000,
-    eib = 1_152_921_504_606_846_976,
-});
-
 #[cfg(feature = "nightly")]
 mod nightly;
-
-macro_rules! impl_accessors {
-    ($ty:ty => { $($name:ident = $size:literal => $unit:literal),* $(,)? }) => {
-        impl BSize<$ty> {
-            $(
-                #[doc = concat!("Returns byte count as ", $unit, ".")]
-                ///
-                /// The result is approximate when the byte count cannot be
-                /// represented exactly as `f64`.
-                #[inline(always)]
-                pub const fn $name(&self) -> f64 {
-                    (self.0 as f64) / ($size as f64)
-                }
-            )*
-        }
-    };
-}
-
-impl_accessors!(u16 => {
-    as_kb = 1_000u16 => "kilobytes",
-    as_kib = 1_024u16 => "kibibytes",
-});
-
-impl_accessors!(u32 => {
-    as_kb = 1_000u32 => "kilobytes",
-    as_kib = 1_024u32 => "kibibytes",
-    as_mb = 1_000_000u32 => "megabytes",
-    as_mib = 1_048_576u32 => "mebibytes",
-    as_gb = 1_000_000_000u32 => "gigabytes",
-    as_gib = 1_073_741_824u32 => "gibibytes",
-});
-
-impl_accessors!(u64 => {
-    as_kb = 1_000u64 => "kilobytes",
-    as_kib = 1_024u64 => "kibibytes",
-    as_mb = 1_000_000u64 => "megabytes",
-    as_mib = 1_048_576u64 => "mebibytes",
-    as_gb = 1_000_000_000u64 => "gigabytes",
-    as_gib = 1_073_741_824u64 => "gibibytes",
-    as_tb = 1_000_000_000_000u64 => "terabytes",
-    as_tib = 1_099_511_627_776u64 => "tebibytes",
-    as_pb = 1_000_000_000_000_000u64 => "petabytes",
-    as_pib = 1_125_899_906_842_624u64 => "pebibytes",
-    as_eb = 1_000_000_000_000_000_000u64 => "exabytes",
-    as_eib = 1_152_921_504_606_846_976u64 => "exbibytes",
-});
-
-#[cfg(target_pointer_width = "16")]
-impl_accessors!(usize => {
-    as_kb = 1_000usize => "kilobytes",
-    as_kib = 1_024usize => "kibibytes",
-});
-
-#[cfg(target_pointer_width = "32")]
-impl_accessors!(usize => {
-    as_kb = 1_000usize => "kilobytes",
-    as_kib = 1_024usize => "kibibytes",
-    as_mb = 1_000_000usize => "megabytes",
-    as_mib = 1_048_576usize => "mebibytes",
-    as_gb = 1_000_000_000usize => "gigabytes",
-    as_gib = 1_073_741_824usize => "gibibytes",
-});
-
-#[cfg(target_pointer_width = "64")]
-impl_accessors!(usize => {
-    as_kb = 1_000usize => "kilobytes",
-    as_kib = 1_024usize => "kibibytes",
-    as_mb = 1_000_000usize => "megabytes",
-    as_mib = 1_048_576usize => "mebibytes",
-    as_gb = 1_000_000_000usize => "gigabytes",
-    as_gib = 1_073_741_824usize => "gibibytes",
-    as_tb = 1_000_000_000_000usize => "terabytes",
-    as_tib = 1_099_511_627_776usize => "tebibytes",
-    as_pb = 1_000_000_000_000_000usize => "petabytes",
-    as_pib = 1_125_899_906_842_624usize => "pebibytes",
-    as_eb = 1_000_000_000_000_000_000usize => "exabytes",
-    as_eib = 1_152_921_504_606_846_976usize => "exbibytes",
-});
+#[cfg(not(feature = "nightly"))]
+mod stable;
 
 #[cfg(test)]
 mod tests {
@@ -259,21 +100,6 @@ mod tests {
     #[test]
     fn with_returns_closure_result() {
         assert!(BSize::<u64>::kib(4).with(|bytes| bytes == 4_096));
-    }
-
-    #[cfg(feature = "nightly")]
-    #[test]
-    fn infers_constructor_type_from_argument() {
-        assert_eq!(BSize::kib(16_u64), BSize::<u64>::b(16 * 1_024));
-        assert_eq!(BSize::mib(16_u32), BSize::<u32>::b(16 * 1_048_576));
-    }
-
-    #[cfg(feature = "nightly")]
-    #[test]
-    fn inferred_constructor_is_const() {
-        const SIZE: BSize<u64> = BSize::kib(16_u64);
-
-        assert_eq!(SIZE, BSize::<u64>::b(16 * 1_024));
     }
 
     #[test]
@@ -348,44 +174,5 @@ mod tests {
             BSize::<u64>::b(bytes).as_eib(),
             (bytes as f64) / (eib as f64),
         );
-    }
-
-    #[cfg(target_pointer_width = "16")]
-    #[test]
-    fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
-    }
-
-    #[cfg(target_pointer_width = "16")]
-    #[test]
-    fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
-        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
-        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
-        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
-    }
-
-    #[cfg(target_pointer_width = "64")]
-    #[test]
-    fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
-        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
-        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
-        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
-        assert_eq!(BSize::<usize>::eb(2).0, 2_000_000_000_000_000_000);
-        assert_eq!(BSize::<usize>::eib(2).0, 2_305_843_009_213_693_952);
-        assert_close(BSize::<usize>::eb(2).as_eb(), 2.0);
-        assert_close(BSize::<usize>::eib(2).as_eib(), 2.0);
     }
 }

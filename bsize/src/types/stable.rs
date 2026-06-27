@@ -13,12 +13,24 @@
 // limitations under the License.
 
 use super::BSize;
-use crate::traits::ExaByteSize;
-use crate::traits::GigaByteSize;
-use crate::traits::KiloByteSize;
-use crate::traits::MegaByteSize;
-use crate::traits::PetaByteSize;
-use crate::traits::TeraByteSize;
+
+macro_rules! impl_constructors {
+    ($ty:ty => { $($name:ident = $size:literal),* $(,)? }) => {
+        impl BSize<$ty> {
+            $(
+                #[doc = concat!(
+                    "Constructs a byte size wrapper from a quantity of `",
+                    stringify!($name),
+                    "` units."
+                )]
+                #[inline(always)]
+                pub const fn $name(size: $ty) -> Self {
+                    BSize(size * $size)
+                }
+            )*
+        }
+    };
+}
 
 macro_rules! impl_accessors {
     ($ty:ty => { $($name:ident = $size:literal => $unit:literal),* $(,)? }) => {
@@ -34,6 +46,35 @@ macro_rules! impl_accessors {
                 }
             )*
         }
+    };
+}
+
+macro_rules! impl_usize_constructors {
+    (through_kilo) => {
+        impl_constructors!(usize => {
+            kb = 1_000,
+            kib = 1_024,
+        });
+    };
+    (through_giga) => {
+        impl_usize_constructors!(through_kilo);
+        impl_constructors!(usize => {
+            mb = 1_000_000,
+            mib = 1_048_576,
+            gb = 1_000_000_000,
+            gib = 1_073_741_824,
+        });
+    };
+    (through_exa) => {
+        impl_usize_constructors!(through_giga);
+        impl_constructors!(usize => {
+            tb = 1_000_000_000_000,
+            tib = 1_099_511_627_776,
+            pb = 1_000_000_000_000_000,
+            pib = 1_125_899_906_842_624,
+            eb = 1_000_000_000_000_000_000,
+            eib = 1_152_921_504_606_846_976,
+        });
     };
 }
 
@@ -66,125 +107,34 @@ macro_rules! impl_usize_accessors {
     };
 }
 
-impl<T: KiloByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `kb` units.
-    #[inline(always)]
-    pub const fn kb(size: T) -> Self
-    where
-        T: [const] KiloByteSize,
-    {
-        BSize(size * T::KB)
-    }
+impl_constructors!(u16 => {
+    kb = 1_000,
+    kib = 1_024,
+});
 
-    /// Constructs a byte size wrapper from a quantity of `kib` units.
-    #[inline(always)]
-    pub const fn kib(size: T) -> Self
-    where
-        T: [const] KiloByteSize,
-    {
-        BSize(size * T::KIB)
-    }
-}
+impl_constructors!(u32 => {
+    kb = 1_000,
+    kib = 1_024,
+    mb = 1_000_000,
+    mib = 1_048_576,
+    gb = 1_000_000_000,
+    gib = 1_073_741_824,
+});
 
-impl<T: MegaByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `mb` units.
-    #[inline(always)]
-    pub const fn mb(size: T) -> Self
-    where
-        T: [const] MegaByteSize,
-    {
-        BSize(size * T::MB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `mib` units.
-    #[inline(always)]
-    pub const fn mib(size: T) -> Self
-    where
-        T: [const] MegaByteSize,
-    {
-        BSize(size * T::MIB)
-    }
-}
-
-impl<T: GigaByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `gb` units.
-    #[inline(always)]
-    pub const fn gb(size: T) -> Self
-    where
-        T: [const] GigaByteSize,
-    {
-        BSize(size * T::GB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `gib` units.
-    #[inline(always)]
-    pub const fn gib(size: T) -> Self
-    where
-        T: [const] GigaByteSize,
-    {
-        BSize(size * T::GIB)
-    }
-}
-
-impl<T: TeraByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `tb` units.
-    #[inline(always)]
-    pub const fn tb(size: T) -> Self
-    where
-        T: [const] TeraByteSize,
-    {
-        BSize(size * T::TB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `tib` units.
-    #[inline(always)]
-    pub const fn tib(size: T) -> Self
-    where
-        T: [const] TeraByteSize,
-    {
-        BSize(size * T::TIB)
-    }
-}
-
-impl<T: PetaByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `pb` units.
-    #[inline(always)]
-    pub const fn pb(size: T) -> Self
-    where
-        T: [const] PetaByteSize,
-    {
-        BSize(size * T::PB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `pib` units.
-    #[inline(always)]
-    pub const fn pib(size: T) -> Self
-    where
-        T: [const] PetaByteSize,
-    {
-        BSize(size * T::PIB)
-    }
-}
-
-impl<T: ExaByteSize> BSize<T> {
-    /// Constructs a byte size wrapper from a quantity of `eb` units.
-    #[inline(always)]
-    pub const fn eb(size: T) -> Self
-    where
-        T: [const] ExaByteSize,
-    {
-        BSize(size * T::EB)
-    }
-
-    /// Constructs a byte size wrapper from a quantity of `eib` units.
-    #[inline(always)]
-    pub const fn eib(size: T) -> Self
-    where
-        T: [const] ExaByteSize,
-    {
-        BSize(size * T::EIB)
-    }
-}
+impl_constructors!(u64 => {
+    kb = 1_000,
+    kib = 1_024,
+    mb = 1_000_000,
+    mib = 1_048_576,
+    gb = 1_000_000_000,
+    gib = 1_073_741_824,
+    tb = 1_000_000_000_000,
+    tib = 1_099_511_627_776,
+    pb = 1_000_000_000_000_000,
+    pib = 1_125_899_906_842_624,
+    eb = 1_000_000_000_000_000_000,
+    eib = 1_152_921_504_606_846_976,
+});
 
 impl_accessors!(u16 => {
     as_kb = 1_000u16 => "kilobytes",
@@ -216,6 +166,13 @@ impl_accessors!(u64 => {
 });
 
 #[cfg(target_pointer_width = "16")]
+impl_usize_constructors!(through_kilo);
+#[cfg(target_pointer_width = "32")]
+impl_usize_constructors!(through_giga);
+#[cfg(target_pointer_width = "64")]
+impl_usize_constructors!(through_exa);
+
+#[cfg(target_pointer_width = "16")]
 impl_usize_accessors!(through_kilo);
 #[cfg(target_pointer_width = "32")]
 impl_usize_accessors!(through_giga);
@@ -234,19 +191,6 @@ mod tests {
             delta <= tolerance,
             "actual: {actual}, expected: {expected}, delta: {delta}, tolerance: {tolerance}",
         );
-    }
-
-    #[test]
-    fn infers_constructor_type_from_argument() {
-        assert_eq!(BSize::kib(16_u64), BSize::<u64>::b(16 * 1_024));
-        assert_eq!(BSize::mib(16_u32), BSize::<u32>::b(16 * 1_048_576));
-    }
-
-    #[test]
-    fn inferred_constructor_is_const() {
-        const SIZE: BSize<u64> = BSize::kib(16_u64);
-
-        assert_eq!(SIZE, BSize::<u64>::b(16 * 1_024));
     }
 
     #[cfg(target_pointer_width = "16")]
