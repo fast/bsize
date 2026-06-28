@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::convert::TryFrom;
 use core::fmt;
 use core::str::FromStr;
 
 use crate::BSize;
+use crate::ByteSize;
 
 /// The error returned when parsing a byte size fails.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -41,26 +43,24 @@ impl fmt::Display for ParseError {
 
 impl core::error::Error for ParseError {}
 
-macro_rules! impl_from_str {
-    ($($ty:ty),* $(,)?) => {
-        $(
-            impl FromStr for BSize<$ty> {
-                type Err = ParseError;
+macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
+    impl FromStr for BSize<Ty> {
+        type Err = ParseError;
 
-                fn from_str(s: &str) -> Result<Self, Self::Err> {
-                    let size = parse_size(s.as_bytes())?;
-                    if size <= <$ty>::MAX as u64 {
-                        Ok(BSize(size as $ty))
-                    } else {
-                        Err(ParseError::Overflow)
-                    }
-                }
-            }
-        )*
-    };
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            bsize_from_u64(parse_size(s.as_bytes())?)
+        }
+    }
+});
+
+fn bsize_from_u64<T>(size: u64) -> Result<BSize<T>, ParseError>
+where
+    T: ByteSize + TryFrom<u64>,
+{
+    T::try_from(size)
+        .map(BSize)
+        .map_err(|_| ParseError::Overflow)
 }
-
-impl_from_str!(u8, u16, u32, u64, usize);
 
 // This is derived from `parse-size` [1].
 //

@@ -20,7 +20,7 @@
 //!
 //! # Features
 //!
-//! * `#![no_std]`-capable, no dependencies, and uses no heap allocation.
+//! * `#![no_std]`-capable, no heap allocation, and no runtime dependencies by default.
 //! * [`BSize`] wrappers over `u8`, `u16`, `u32`, `u64`, and `usize` for representing byte sizes
 //!   with different underlying types.
 //! * `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB"
@@ -119,7 +119,6 @@ pub use self::display::DisplayUnitSystem;
 pub use self::display::display;
 pub use self::parse::ParseError;
 pub use self::traits::ByteSize;
-pub use self::traits::Displayable;
 pub use self::traits::ExaByteSize;
 pub use self::traits::GigaByteSize;
 pub use self::traits::KiloByteSize;
@@ -127,6 +126,17 @@ pub use self::traits::MegaByteSize;
 pub use self::traits::PetaByteSize;
 pub use self::traits::TeraByteSize;
 pub use self::types::BSize;
+
+#[cfg(test)]
+fn assert_close(actual: f64, expected: f64) {
+    let delta = (actual - expected).abs();
+    let tolerance = f64::EPSILON;
+
+    assert!(
+        delta <= tolerance,
+        "actual: {actual}, expected: {expected}, delta: {delta}, tolerance: {tolerance}",
+    );
+}
 
 #[cfg(test)]
 mod property_tests {

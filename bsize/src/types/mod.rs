@@ -56,92 +56,6 @@ impl<T: ByteSize> BSize<T> {
     }
 }
 
-macro_rules! impl_accessors {
-    ($ty:ty => { $($name:ident = $trait:ident::$size:ident => $unit:literal),* $(,)? }) => {
-        impl BSize<$ty> {
-            $(
-                #[doc = concat!("Returns byte count as ", $unit, ".")]
-                ///
-                /// The result is approximate when the byte count cannot be
-                /// represented exactly as `f64`.
-                #[inline(always)]
-                pub const fn $name(&self) -> f64 {
-                    (self.0 as f64) / (<$ty as $crate::traits::$trait>::$size as f64)
-                }
-            )*
-        }
-    };
-}
-
-macro_rules! impl_usize_accessors {
-    (through_kilo) => {
-        impl_accessors!(usize => {
-            as_kb = KiloByteSize::KB => "kilobytes",
-            as_kib = KiloByteSize::KIB => "kibibytes",
-        });
-    };
-    (through_giga) => {
-        impl_usize_accessors!(through_kilo);
-        impl_accessors!(usize => {
-            as_mb = MegaByteSize::MB => "megabytes",
-            as_mib = MegaByteSize::MIB => "mebibytes",
-            as_gb = GigaByteSize::GB => "gigabytes",
-            as_gib = GigaByteSize::GIB => "gibibytes",
-        });
-    };
-    (through_exa) => {
-        impl_usize_accessors!(through_giga);
-        impl_accessors!(usize => {
-            as_tb = TeraByteSize::TB => "terabytes",
-            as_tib = TeraByteSize::TIB => "tebibytes",
-            as_pb = PetaByteSize::PB => "petabytes",
-            as_pib = PetaByteSize::PIB => "pebibytes",
-            as_eb = ExaByteSize::EB => "exabytes",
-            as_eib = ExaByteSize::EIB => "exbibytes",
-        });
-    };
-}
-
-macro_rules! impl_unit_accessors {
-    () => {
-        impl_accessors!(u16 => {
-            as_kb = KiloByteSize::KB => "kilobytes",
-            as_kib = KiloByteSize::KIB => "kibibytes",
-        });
-
-        impl_accessors!(u32 => {
-            as_kb = KiloByteSize::KB => "kilobytes",
-            as_kib = KiloByteSize::KIB => "kibibytes",
-            as_mb = MegaByteSize::MB => "megabytes",
-            as_mib = MegaByteSize::MIB => "mebibytes",
-            as_gb = GigaByteSize::GB => "gigabytes",
-            as_gib = GigaByteSize::GIB => "gibibytes",
-        });
-
-        impl_accessors!(u64 => {
-            as_kb = KiloByteSize::KB => "kilobytes",
-            as_kib = KiloByteSize::KIB => "kibibytes",
-            as_mb = MegaByteSize::MB => "megabytes",
-            as_mib = MegaByteSize::MIB => "mebibytes",
-            as_gb = GigaByteSize::GB => "gigabytes",
-            as_gib = GigaByteSize::GIB => "gibibytes",
-            as_tb = TeraByteSize::TB => "terabytes",
-            as_tib = TeraByteSize::TIB => "tebibytes",
-            as_pb = PetaByteSize::PB => "petabytes",
-            as_pib = PetaByteSize::PIB => "pebibytes",
-            as_eb = ExaByteSize::EB => "exabytes",
-            as_eib = ExaByteSize::EIB => "exbibytes",
-        });
-
-        #[cfg(target_pointer_width = "16")]
-        impl_usize_accessors!(through_kilo);
-        #[cfg(target_pointer_width = "32")]
-        impl_usize_accessors!(through_giga);
-        #[cfg(target_pointer_width = "64")]
-        impl_usize_accessors!(through_exa);
-    };
-}
-
 #[cfg(feature = "nightly")]
 mod nightly;
 #[cfg(not(feature = "nightly"))]
@@ -150,16 +64,7 @@ mod stable;
 #[cfg(test)]
 mod tests {
     use super::BSize;
-
-    fn assert_close(actual: f64, expected: f64) {
-        let delta = (actual - expected).abs();
-        let tolerance = f64::EPSILON;
-
-        assert!(
-            delta <= tolerance,
-            "actual: {actual}, expected: {expected}, delta: {delta}, tolerance: {tolerance}",
-        );
-    }
+    use crate::assert_close;
 
     #[test]
     fn defaults() {
@@ -173,6 +78,15 @@ mod tests {
     #[test]
     fn constructs_u8_units() {
         assert_eq!(BSize::<u8>::b(2).0, 2);
+    }
+
+    #[test]
+    fn returns_byte_units() {
+        assert_close(BSize::<u8>::b(2).as_b(), 2.0);
+        assert_close(BSize::<u16>::b(2).as_b(), 2.0);
+        assert_close(BSize::<u32>::b(2).as_b(), 2.0);
+        assert_close(BSize::<u64>::b(2).as_b(), 2.0);
+        assert_close(BSize::<usize>::b(2).as_b(), 2.0);
     }
 
     #[test]
@@ -247,6 +161,45 @@ mod tests {
     #[test]
     fn returns_u64_units() {
         assert_close(BSize::<u64>::eib(2).as_eib(), 2.0);
+    }
+
+    #[cfg(target_pointer_width = "16")]
+    #[test]
+    fn returns_usize_units() {
+        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
+        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
+        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
+        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    #[test]
+    fn returns_usize_units() {
+        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
+        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
+        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
+        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
+        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
+        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
+        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
+        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    #[test]
+    fn returns_usize_units() {
+        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
+        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
+        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
+        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
+        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
+        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
+        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
+        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
+        assert_eq!(BSize::<usize>::eb(2).0, 2_000_000_000_000_000_000);
+        assert_eq!(BSize::<usize>::eib(2).0, 2_305_843_009_213_693_952);
+        assert_close(BSize::<usize>::eb(2).as_eb(), 2.0);
+        assert_close(BSize::<usize>::eib(2).as_eib(), 2.0);
     }
 
     #[test]

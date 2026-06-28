@@ -38,6 +38,7 @@ nightly = []
 serde = ["dep:serde_core"]
 
 [dependencies]
+macroweave = "0.1.0"
 serde_core = { version = "1", default-features = false, optional = true }
 
 [dev-dependencies]
