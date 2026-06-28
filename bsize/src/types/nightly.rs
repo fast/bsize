@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::marker::Destruct;
+
 use super::ByteSize;
 use crate::traits::BaseByteSize;
 use crate::traits::ExaByteSize;
@@ -22,6 +24,16 @@ use crate::traits::PetaByteSize;
 use crate::traits::TeraByteSize;
 
 impl<T: BaseByteSize> ByteSize<T> {
+    /// Calculate a new byte size with the provided function, returning a new struct.
+    ///
+    /// This method can be used in const contexts when the provided function is const-compatible.
+    pub const fn map<F>(self, f: F) -> Self
+    where
+        F: [const] FnOnce(T) -> T + [const] Destruct,
+    {
+        ByteSize(f(self.0))
+    }
+
     /// Returns byte count as bytes.
     ///
     /// The result is approximate when the byte count cannot be represented
@@ -324,5 +336,12 @@ mod tests {
 
         assert_close(BYTES, 16.0);
         assert_close(KIB, 16.0);
+    }
+
+    #[test]
+    fn map_is_const() {
+        const SIZE: ByteSize<u64> = ByteSize::kib(4_u64).map(const |bytes| bytes + 64);
+
+        assert_eq!(SIZE, ByteSize::b(4_160));
     }
 }

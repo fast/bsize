@@ -13,6 +13,14 @@
 // limitations under the License.
 
 use super::ByteSize;
+use crate::traits::BaseByteSize;
+
+impl<T: BaseByteSize> ByteSize<T> {
+    /// Calculate a new byte size with the provided function, returning a new struct.
+    pub fn map(self, f: impl FnOnce(T) -> T) -> Self {
+        ByteSize(f(self.0))
+    }
+}
 
 macroweave::repeat!((Ty, Name, Trait, Size) in [
     (u16, kb, KiloByteSize, KB),

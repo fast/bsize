@@ -25,7 +25,11 @@ This crate provides multiple semantic wrappers and utilities for byte size repre
 * `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB".
 * `Display` impl for `ByteSize`, allowing for formatting byte sizes as human-readable strings in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
 * Optional `serde` support for binary and human-readable format.
-* Optional `nightly` support for generic const unit constructors, allowing calls like `ByteSize::kib(16_u64)`.
+* Optional `nightly` support for a broader const-friendly API surface powered by nightly-only Rust features.
+
+## Nightly
+
+With the `nightly` feature enabled on a nightly compiler, this crate can use unstable Rust capabilities such as const trait support. The visible effect is a broader const surface for generic byte-size expressions, including unit helpers and simple transformations over the underlying byte count. Because this follows Rust nightly, exact capabilities may evolve with upstream language features.
 
 ## Documentation
 
