@@ -23,7 +23,7 @@ use crate::ByteSize;
 /// See [`Display`] for examples. Use [`Display::new`] when the byte count is already represented
 /// as an `f64`.
 pub fn display(size: impl ByteSize) -> Display {
-    Display::new(size.as_f64())
+    Display::new(size.to_f64())
 }
 
 impl<T: ByteSize> BSize<T> {
@@ -31,7 +31,7 @@ impl<T: ByteSize> BSize<T> {
     ///
     /// See [`Display`] for examples.
     pub fn display(&self) -> Display {
-        Display::new(self.0.as_f64())
+        Display::new(self.0.to_f64())
     }
 }
 

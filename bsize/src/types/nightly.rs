@@ -32,7 +32,7 @@ impl<T: ByteSize> BSize<T> {
     where
         T: [const] ByteSize,
     {
-        self.0.as_f64()
+        self.0.to_f64()
     }
 }
 
@@ -62,9 +62,9 @@ impl<T: KiloByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_kb(&self) -> f64
     where
-        T: [const] KiloByteSize + [const] ByteSize,
+        T: [const] KiloByteSize,
     {
-        self.0.as_f64() / T::KB.as_f64()
+        self.0.to_f64() / T::KB.to_f64()
     }
 
     /// Returns byte count as kibibytes.
@@ -74,9 +74,9 @@ impl<T: KiloByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_kib(&self) -> f64
     where
-        T: [const] KiloByteSize + [const] ByteSize,
+        T: [const] KiloByteSize,
     {
-        self.0.as_f64() / T::KIB.as_f64()
+        self.0.to_f64() / T::KIB.to_f64()
     }
 }
 
@@ -106,9 +106,9 @@ impl<T: MegaByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_mb(&self) -> f64
     where
-        T: [const] MegaByteSize + [const] ByteSize,
+        T: [const] MegaByteSize,
     {
-        self.0.as_f64() / T::MB.as_f64()
+        self.0.to_f64() / T::MB.to_f64()
     }
 
     /// Returns byte count as mebibytes.
@@ -118,9 +118,9 @@ impl<T: MegaByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_mib(&self) -> f64
     where
-        T: [const] MegaByteSize + [const] ByteSize,
+        T: [const] MegaByteSize,
     {
-        self.0.as_f64() / T::MIB.as_f64()
+        self.0.to_f64() / T::MIB.to_f64()
     }
 }
 
@@ -150,9 +150,9 @@ impl<T: GigaByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_gb(&self) -> f64
     where
-        T: [const] GigaByteSize + [const] ByteSize,
+        T: [const] GigaByteSize,
     {
-        self.0.as_f64() / T::GB.as_f64()
+        self.0.to_f64() / T::GB.to_f64()
     }
 
     /// Returns byte count as gibibytes.
@@ -162,9 +162,9 @@ impl<T: GigaByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_gib(&self) -> f64
     where
-        T: [const] GigaByteSize + [const] ByteSize,
+        T: [const] GigaByteSize,
     {
-        self.0.as_f64() / T::GIB.as_f64()
+        self.0.to_f64() / T::GIB.to_f64()
     }
 }
 
@@ -194,9 +194,9 @@ impl<T: TeraByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_tb(&self) -> f64
     where
-        T: [const] TeraByteSize + [const] ByteSize,
+        T: [const] TeraByteSize,
     {
-        self.0.as_f64() / T::TB.as_f64()
+        self.0.to_f64() / T::TB.to_f64()
     }
 
     /// Returns byte count as tebibytes.
@@ -206,9 +206,9 @@ impl<T: TeraByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_tib(&self) -> f64
     where
-        T: [const] TeraByteSize + [const] ByteSize,
+        T: [const] TeraByteSize,
     {
-        self.0.as_f64() / T::TIB.as_f64()
+        self.0.to_f64() / T::TIB.to_f64()
     }
 }
 
@@ -238,9 +238,9 @@ impl<T: PetaByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_pb(&self) -> f64
     where
-        T: [const] PetaByteSize + [const] ByteSize,
+        T: [const] PetaByteSize,
     {
-        self.0.as_f64() / T::PB.as_f64()
+        self.0.to_f64() / T::PB.to_f64()
     }
 
     /// Returns byte count as pebibytes.
@@ -250,9 +250,9 @@ impl<T: PetaByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_pib(&self) -> f64
     where
-        T: [const] PetaByteSize + [const] ByteSize,
+        T: [const] PetaByteSize,
     {
-        self.0.as_f64() / T::PIB.as_f64()
+        self.0.to_f64() / T::PIB.to_f64()
     }
 }
 
@@ -282,9 +282,9 @@ impl<T: ExaByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_eb(&self) -> f64
     where
-        T: [const] ExaByteSize + [const] ByteSize,
+        T: [const] ExaByteSize,
     {
-        self.0.as_f64() / T::EB.as_f64()
+        self.0.to_f64() / T::EB.to_f64()
     }
 
     /// Returns byte count as exbibytes.
@@ -294,9 +294,9 @@ impl<T: ExaByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_eib(&self) -> f64
     where
-        T: [const] ExaByteSize + [const] ByteSize,
+        T: [const] ExaByteSize,
     {
-        self.0.as_f64() / T::EIB.as_f64()
+        self.0.to_f64() / T::EIB.to_f64()
     }
 }
 

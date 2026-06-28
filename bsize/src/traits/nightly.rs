@@ -17,30 +17,13 @@ use core::ops::Mul;
 use super::private;
 
 /// A marker trait for all supported byte size underlying types.
-///
-/// The conversion to `f64` is approximate when the byte count cannot be
-/// represented exactly as `f64`.
-pub const trait ByteSize: Copy + private::Sealed {
-    /// Returns the value as an approximate `f64`.
-    fn as_f64(&self) -> f64;
+pub const trait ByteSize: private::Sealed + Clone + Copy + Sized {
+    /// Returns the byte size as an approximate `f64`.
+    fn to_f64(&self) -> f64;
 }
-
-macro_rules! impl_byte_size {
-    ($($ty:ty),* $(,)?) => {
-        $(
-            const impl ByteSize for $ty {
-                fn as_f64(&self) -> f64 {
-                    *self as f64
-                }
-            }
-        )*
-    };
-}
-
-impl_byte_size!(u8, u16, u32, u64, usize);
 
 /// A trait for byte size payload types that can represent kilobyte-scale units.
-pub const trait KiloByteSize: ByteSize + [const] Mul<Output = Self> + Sized {
+pub const trait KiloByteSize: [const] ByteSize + [const] Mul<Output = Self> {
     /// Number of bytes in one kilobyte.
     const KB: Self;
 
@@ -92,6 +75,20 @@ pub const trait ExaByteSize: [const] PetaByteSize {
     /// Number of bytes in one exbibyte.
     const EIB: Self;
 }
+
+macro_rules! impl_byte_size {
+    ($($ty:ty),* $(,)?) => {
+        $(
+            const impl ByteSize for $ty {
+                fn to_f64(&self) -> f64 {
+                    *self as f64
+                }
+            }
+        )*
+    };
+}
+
+impl_byte_size!(u8, u16, u32, u64, usize);
 
 macro_rules! impl_size_trait {
     ($trait:ident for $ty:ty { $($name:ident = $value:literal),* $(,)? }) => {
