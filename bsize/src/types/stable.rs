@@ -97,6 +97,7 @@ impl_usize_constructors!(through_giga);
 #[cfg(target_pointer_width = "64")]
 impl_usize_constructors!(through_exa);
 
+impl_byte_accessors!(u8, u16, u32, u64, usize);
 impl_unit_accessors!();
 
 #[cfg(test)]

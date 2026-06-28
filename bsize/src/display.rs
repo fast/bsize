@@ -16,22 +16,22 @@ use core::fmt;
 use core::fmt::Write as _;
 
 use crate::BSize;
-use crate::Displayable;
+use crate::ByteSize;
 
 /// Create a [`Display`] instance for displaying a byte size.
 ///
 /// See [`Display`] for examples. Use [`Display::new`] when the byte count is already represented
 /// as an `f64`.
-pub fn display(size: impl Displayable) -> Display {
-    Display::new(size.canonicalize())
+pub fn display(size: impl ByteSize) -> Display {
+    Display::new(size.as_f64())
 }
 
-impl<T: Displayable> BSize<T> {
+impl<T: ByteSize> BSize<T> {
     /// Returns a [`Display`] wrapper.
     ///
     /// See [`Display`] for examples.
     pub fn display(&self) -> Display {
-        Display::new(self.0.canonicalize())
+        Display::new(self.0.as_f64())
     }
 }
 

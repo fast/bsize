@@ -23,9 +23,55 @@ mod private {
     impl_marker!(Sealed for u8, u16, u32, u64, usize);
 }
 
-/// A marker trait for all supported byte size underneath type.
-pub trait ByteSize: private::Sealed {}
-impl_marker!(ByteSize for u8, u16, u32, u64, usize);
+macro_rules! define_byte_size_trait {
+    (trait_prefix = [$($trait_prefix:tt)*];) => {
+        /// A marker trait for all supported byte size underlying types.
+        ///
+        /// The conversion to `f64` is approximate when the byte count cannot be
+        /// represented exactly as `f64`.
+        pub $($trait_prefix)* trait ByteSize: Copy + private::Sealed {
+            /// Returns the value as an approximate `f64`.
+            fn as_f64(&self) -> f64;
+        }
+    };
+}
+
+#[cfg(not(feature = "nightly"))]
+define_byte_size_trait! {
+    trait_prefix = [];
+}
+
+#[cfg(feature = "nightly")]
+define_byte_size_trait! {
+    trait_prefix = [const];
+}
+
+macro_rules! impl_byte_size {
+    (impl_prefix = []; $($ty:ty),* $(,)?) => {
+        $(
+            impl ByteSize for $ty {
+                fn as_f64(&self) -> f64 {
+                    *self as f64
+                }
+            }
+        )*
+    };
+    (impl_prefix = [const]; $($ty:ty),* $(,)?) => {
+        $(
+            const impl ByteSize for $ty {
+                fn as_f64(&self) -> f64 {
+                    *self as f64
+                }
+            }
+        )*
+    };
+}
+
+#[cfg(not(feature = "nightly"))]
+impl_byte_size!(impl_prefix = []; u8, u16, u32, u64, usize);
+
+#[cfg(feature = "nightly")]
+impl_byte_size!(impl_prefix = [const]; u8, u16, u32, u64, usize);
 
 macro_rules! define_unit_traits {
     (
@@ -203,22 +249,3 @@ mod stable;
 pub use self::nightly::*;
 #[cfg(not(feature = "nightly"))]
 pub use self::stable::*;
-
-/// A trait for all displayable byte size underneath type.
-pub trait Displayable: ByteSize {
-    /// Convert the byte size payload to a canonicalized floating point representation,
-    /// which will then be used for display purposes.
-    fn canonicalize(&self) -> f64;
-}
-
-macro_rules! impl_displayable {
-  ($($ty:ty),* $(,)?) => ($(
-      impl Displayable for $ty {
-          fn canonicalize(&self) -> f64 {
-              *self as f64
-          }
-      }
-  )*)
-}
-
-impl_displayable!(u8, u16, u32, u64, usize);

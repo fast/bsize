@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use super::BSize;
+use crate::traits::ByteSize;
 use crate::traits::ExaByteSize;
 use crate::traits::GigaByteSize;
 use crate::traits::KiloByteSize;
@@ -71,7 +72,70 @@ impl_constructors!(ExaByteSize => {
     eib = EIB,
 });
 
-impl_unit_accessors!();
+impl<T: ByteSize> BSize<T> {
+    /// Returns byte count as bytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`. Use `.0` or [`BSize::with`] for the exact underlying
+    /// integer value.
+    #[inline(always)]
+    pub const fn as_b(&self) -> f64
+    where
+        T: [const] ByteSize,
+    {
+        self.0.as_f64()
+    }
+}
+
+macro_rules! impl_accessors {
+    ($trait:ident => { $($name:ident = $size:ident => $unit:literal),* $(,)? }) => {
+        impl<T: $trait> BSize<T> {
+            $(
+                #[doc = concat!("Returns byte count as ", $unit, ".")]
+                ///
+                /// The result is approximate when the byte count cannot be
+                /// represented exactly as `f64`.
+                #[inline(always)]
+                pub const fn $name(&self) -> f64
+                where
+                    T: [const] $trait + [const] ByteSize,
+                {
+                    self.0.as_f64() / T::$size.as_f64()
+                }
+            )*
+        }
+    };
+}
+
+impl_accessors!(KiloByteSize => {
+    as_kb = KB => "kilobytes",
+    as_kib = KIB => "kibibytes",
+});
+
+impl_accessors!(MegaByteSize => {
+    as_mb = MB => "megabytes",
+    as_mib = MIB => "mebibytes",
+});
+
+impl_accessors!(GigaByteSize => {
+    as_gb = GB => "gigabytes",
+    as_gib = GIB => "gibibytes",
+});
+
+impl_accessors!(TeraByteSize => {
+    as_tb = TB => "terabytes",
+    as_tib = TIB => "tebibytes",
+});
+
+impl_accessors!(PetaByteSize => {
+    as_pb = PB => "petabytes",
+    as_pib = PIB => "pebibytes",
+});
+
+impl_accessors!(ExaByteSize => {
+    as_eb = EB => "exabytes",
+    as_eib = EIB => "exbibytes",
+});
 
 #[cfg(test)]
 mod tests {
@@ -98,6 +162,15 @@ mod tests {
         const SIZE: BSize<u64> = BSize::kib(16_u64);
 
         assert_eq!(SIZE, BSize::b(16 * 1_024));
+    }
+
+    #[test]
+    fn inferred_accessors_are_const() {
+        const BYTES: f64 = BSize::b(16_u64).as_b();
+        const KIB: f64 = BSize::kib(16_u64).as_kib();
+
+        assert_close(BYTES, 16.0);
+        assert_close(KIB, 16.0);
     }
 
     #[cfg(target_pointer_width = "16")]

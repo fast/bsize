@@ -56,7 +56,8 @@ impl<T: ByteSize> BSize<T> {
     }
 }
 
-macro_rules! impl_byte_accessor {
+#[cfg(not(feature = "nightly"))]
+macro_rules! impl_byte_accessors {
     ($($ty:ty),* $(,)?) => {
         $(
             impl BSize<$ty> {
@@ -74,6 +75,7 @@ macro_rules! impl_byte_accessor {
     };
 }
 
+#[cfg(not(feature = "nightly"))]
 macro_rules! impl_accessors {
     ($ty:ty => { $($name:ident = $trait:ident::$size:ident => $unit:literal),* $(,)? }) => {
         impl BSize<$ty> {
@@ -91,8 +93,7 @@ macro_rules! impl_accessors {
     };
 }
 
-impl_byte_accessor!(u8, u16, u32, u64, usize);
-
+#[cfg(not(feature = "nightly"))]
 macro_rules! impl_usize_accessors {
     (through_kilo) => {
         impl_accessors!(usize => {
@@ -122,6 +123,7 @@ macro_rules! impl_usize_accessors {
     };
 }
 
+#[cfg(not(feature = "nightly"))]
 macro_rules! impl_unit_accessors {
     () => {
         impl_accessors!(u16 => {

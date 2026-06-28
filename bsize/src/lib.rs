@@ -119,7 +119,6 @@ pub use self::display::DisplayUnitSystem;
 pub use self::display::display;
 pub use self::parse::ParseError;
 pub use self::traits::ByteSize;
-pub use self::traits::Displayable;
 pub use self::traits::ExaByteSize;
 pub use self::traits::GigaByteSize;
 pub use self::traits::KiloByteSize;
