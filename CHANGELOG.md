@@ -6,12 +6,14 @@ All significant changes to this software be documented in this file.
 
 ### Breaking changes
 
-* Renamed `BSize::with` to `BSize::map`. A new `BSize::with` method has been added that accepts a closure returning arbitrary type, allowing for mapping a `BSize` to any other type. This follows `LocalKey::with`'s naming conventions.
+* Renamed the old `BSize::with` mapping API to `BSize::map`.
 * Removed the `Displayable` trait. `ByteSize` now has a `to_f64` method that is the same as the `Displayable::canonicalize` method.
 
 ### New features
 
 * Added `nightly` feature for using `BSize` with nightly-only features like `const_ops` and `const_trait_impl`.
+* Added a default `usize` underlying type for `BSize`, so `BSize` is equivalent to `BSize<usize>` in type positions.
+* Added `BSize8`, `BSize16`, `BSize32`, and `BSize64` aliases.
 * Added `ByteSize::to_f64` for converting supported byte size underlying types to approximate `f64` values.
 * Added `BSize::as_b` for returning the byte count as an approximate `f64`.
 

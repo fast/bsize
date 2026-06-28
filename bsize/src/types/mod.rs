@@ -19,7 +19,19 @@ use crate::traits::ByteSize;
 
 /// Byte size representation.
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BSize<T: ByteSize>(pub T);
+pub struct BSize<T: ByteSize = usize>(pub T);
+
+/// Byte size representation backed by `u8`.
+pub type BSize8 = BSize<u8>;
+
+/// Byte size representation backed by `u16`.
+pub type BSize16 = BSize<u16>;
+
+/// Byte size representation backed by `u32`.
+pub type BSize32 = BSize<u32>;
+
+/// Byte size representation backed by `u64`.
+pub type BSize64 = BSize<u64>;
 
 impl<T: ByteSize + fmt::Debug> fmt::Debug for BSize<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -44,11 +56,6 @@ impl<T: ByteSize> BSize<T> {
         BSize(f(self.0))
     }
 
-    /// Calculate a new value with the provided function.
-    pub fn with<R>(self, f: impl FnOnce(T) -> R) -> R {
-        f(self.0)
-    }
-
     /// Constructs a byte size wrapper from a quantity of bytes.
     #[inline(always)]
     pub const fn b(size: T) -> Self {
@@ -64,6 +71,10 @@ mod stable;
 #[cfg(test)]
 mod tests {
     use super::BSize;
+    use super::BSize8;
+    use super::BSize16;
+    use super::BSize32;
+    use super::BSize64;
     use crate::assert_close;
 
     #[test]
@@ -73,6 +84,22 @@ mod tests {
         assert_eq!(BSize::<u32>::default(), BSize::b(0));
         assert_eq!(BSize::<u64>::default(), BSize::b(0));
         assert_eq!(BSize::<usize>::default(), BSize::b(0));
+    }
+
+    #[test]
+    fn default_type_is_usize() {
+        let default: BSize = BSize::b(2);
+        let explicit: BSize<usize> = BSize::b(2);
+
+        assert_eq!(default, explicit);
+    }
+
+    #[test]
+    fn aliases_use_expected_underlying_types() {
+        assert_eq!(BSize8::b(2), BSize::<u8>::b(2));
+        assert_eq!(BSize16::kib(2), BSize::<u16>::kib(2));
+        assert_eq!(BSize32::gib(2), BSize::<u32>::gib(2));
+        assert_eq!(BSize64::eib(2), BSize::<u64>::eib(2));
     }
 
     #[test]
@@ -95,11 +122,6 @@ mod tests {
             BSize::<u64>::kib(4).map(|bytes| bytes + 64),
             BSize::b(4_160),
         );
-    }
-
-    #[test]
-    fn with_returns_closure_result() {
-        assert!(BSize::<u64>::kib(4).with(|bytes| bytes == 4_096));
     }
 
     #[test]

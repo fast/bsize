@@ -21,8 +21,8 @@
 //! # Features
 //!
 //! * `#![no_std]`-capable, no heap allocation, and no runtime dependencies by default.
-//! * [`BSize`] wrappers over `u8`, `u16`, `u32`, `u64`, and `usize` for representing byte sizes
-//!   with different underlying types.
+//! * [`BSize`] defaults to `usize`, with [`BSize8`], [`BSize16`], [`BSize32`], and [`BSize64`]
+//!   aliases for representing byte sizes with different underlying types.
 //! * `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB"
 //!   and "521 TB".
 //! * [`Display`] impl for `BSize`, allowing for formatting byte sizes as human-readable strings in
@@ -39,16 +39,19 @@
 //! use bsize::BSize;
 //!
 //! assert!(BSize::<usize>::kib(4) > BSize::<usize>::kb(4));
+//!
+//! let size: BSize = BSize::b(4_096);
+//! assert_eq!(size.0, 4_096);
 //! ```
 //!
 //! Parse byte sizes from strings.
 //!
 //! ```
-//! use bsize::BSize;
+//! use bsize::BSize64;
 //!
-//! let size: BSize<u64> = "1.5 MiB".parse().unwrap();
+//! let size: BSize64 = "1.5 MiB".parse().unwrap();
 //!
-//! assert_eq!(BSize::<u64>::mib(1).map(|bytes| bytes + 512 * 1024), size);
+//! assert_eq!(BSize64::mib(1).map(|bytes| bytes + 512 * 1024), size);
 //! ```
 //!
 //! Display as human-readable string.
@@ -126,6 +129,10 @@ pub use self::traits::MegaByteSize;
 pub use self::traits::PetaByteSize;
 pub use self::traits::TeraByteSize;
 pub use self::types::BSize;
+pub use self::types::BSize8;
+pub use self::types::BSize16;
+pub use self::types::BSize32;
+pub use self::types::BSize64;
 
 #[cfg(test)]
 fn assert_close(actual: f64, expected: f64) {
