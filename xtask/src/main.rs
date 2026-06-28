@@ -31,7 +31,6 @@ struct Command {
 impl Command {
     fn run(self) {
         match self.sub {
-            SubCommand::Build(cmd) => cmd.run(),
             SubCommand::Lint(cmd) => cmd.run(),
             SubCommand::Test(cmd) => cmd.run(),
         }
@@ -40,31 +39,10 @@ impl Command {
 
 #[derive(Subcommand)]
 enum SubCommand {
-    #[clap(about = "Compile all workspace targets.")]
-    Build(CommandBuild),
     #[clap(about = "Run workspace quality checks.")]
     Lint(CommandLint),
     #[clap(about = "Run workspace unit tests.")]
     Test(CommandTest),
-}
-
-#[derive(Parser)]
-struct CommandBuild {
-    #[arg(long, help = "Assert that `Cargo.lock` will remain unchanged.")]
-    locked: bool,
-
-    #[arg(
-        long,
-        value_delimiter = ',',
-        help = "Enable package features for the build."
-    )]
-    features: Vec<String>,
-}
-
-impl CommandBuild {
-    fn run(self) {
-        run_command(make_build_cmd(self.locked, &self.features));
-    }
 }
 
 #[derive(Parser)]
@@ -93,7 +71,10 @@ struct CommandLint {
 
 impl CommandLint {
     fn run(self) {
-        run_command(make_clippy_cmd(self.fix));
+        run_command(make_clippy_cmd(self.fix, &[]));
+        run_command(make_clippy_cmd(self.fix, &["serde"]));
+        run_command(make_clippy_cmd(self.fix, &["nightly"]));
+        run_command(make_clippy_cmd(self.fix, &["nightly", "serde"]));
         run_command(make_format_cmd(self.fix));
         run_command(make_taplo_cmd(self.fix));
         run_command(make_typos_cmd());
@@ -128,28 +109,6 @@ fn run_command(mut cmd: StdCommand) {
     assert!(status.success(), "command failed: {status}");
 }
 
-fn make_build_cmd(locked: bool, features: &[String]) -> StdCommand {
-    let mut cmd = find_command("cargo");
-    if features.iter().any(|feature| feature == "nightly") {
-        cmd.arg("+nightly");
-    }
-    cmd.args([
-        "build",
-        "--workspace",
-        "--tests",
-        "--examples",
-        "--benches",
-        "--bins",
-    ]);
-    if !features.is_empty() {
-        cmd.arg("--features").arg(features.join(","));
-    }
-    if locked {
-        cmd.arg("--locked");
-    }
-    cmd
-}
-
 fn make_test_cmd(no_capture: bool, features: &[&str]) -> StdCommand {
     let mut cmd = find_command("cargo");
     cmd.args(["test", "--workspace", "--no-default-features"]);
@@ -171,16 +130,18 @@ fn make_format_cmd(fix: bool) -> StdCommand {
     cmd
 }
 
-fn make_clippy_cmd(fix: bool) -> StdCommand {
+fn make_clippy_cmd(fix: bool, features: &[&str]) -> StdCommand {
     let mut cmd = find_command("cargo");
     cmd.args([
         "+nightly",
         "clippy",
         "--tests",
-        "--all-features",
         "--all-targets",
         "--workspace",
     ]);
+    if !features.is_empty() {
+        cmd.arg("--features").arg(features.join(","));
+    }
     if fix {
         cmd.args(["--allow-staged", "--allow-dirty", "--fix"]);
     } else {

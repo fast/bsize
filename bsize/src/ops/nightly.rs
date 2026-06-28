@@ -14,8 +14,8 @@
 
 use core::ops;
 
+use crate::ByteSize;
 use crate::traits::BaseByteSize;
-use crate::types::ByteSize;
 
 const impl<T> ops::Add<ByteSize<T>> for ByteSize<T>
 where

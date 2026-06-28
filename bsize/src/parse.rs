@@ -58,7 +58,7 @@ where
     T: BaseByteSize + TryFrom<u64>,
 {
     T::try_from(size)
-        .map(ByteSize)
+        .map(ByteSize::b)
         .map_err(|_| ParseError::Overflow)
 }
 
@@ -205,7 +205,7 @@ mod tests {
 
     fn assert_parse_ok(input: &str, expected: u64) {
         let actual = ByteSize::<u64>::from_str(input).unwrap();
-        let expected = ByteSize::<u64>(expected);
+        let expected = ByteSize::<u64>::b(expected);
         assert_eq!(actual, expected, "input: {input:?}");
 
         let round_trip = actual.to_string().parse::<ByteSize<u64>>().unwrap();

@@ -14,7 +14,7 @@
 
 use core::ops;
 
-use crate::types::ByteSize;
+use crate::ByteSize;
 
 macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
     impl ops::Add<ByteSize<Ty>> for ByteSize<Ty> {

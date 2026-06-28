@@ -27,33 +27,33 @@ mod tests {
 
     #[test]
     fn adds_byte_sizes() {
-        assert_eq!((BSize8::b(3) + BSize8::b(5)).0, 8);
-        assert_eq!((BSize16::b(3) + BSize16::b(5)).0, 8);
-        assert_eq!((BSize32::b(3) + BSize32::b(5)).0, 8);
-        assert_eq!((BSize64::b(3) + BSize64::b(5)).0, 8);
-        assert_eq!((BSize::b(3) + BSize::b(5)).0, 8);
+        assert_eq!((BSize8::b(3) + BSize8::b(5)).bytes(), 8);
+        assert_eq!((BSize16::b(3) + BSize16::b(5)).bytes(), 8);
+        assert_eq!((BSize32::b(3) + BSize32::b(5)).bytes(), 8);
+        assert_eq!((BSize64::b(3) + BSize64::b(5)).bytes(), 8);
+        assert_eq!((BSize::b(3) + BSize::b(5)).bytes(), 8);
     }
 
     #[test]
     fn add_assigns_byte_sizes() {
         let mut size = BSize::b(3);
         size += BSize::b(5);
-        assert_eq!(size.0, 8);
+        assert_eq!(size.bytes(), 8);
     }
 
     #[test]
     fn subtracts_byte_sizes() {
-        assert_eq!((BSize8::b(8) - BSize8::b(5)).0, 3);
-        assert_eq!((BSize16::b(8) - BSize16::b(5)).0, 3);
-        assert_eq!((BSize32::b(8) - BSize32::b(5)).0, 3);
-        assert_eq!((BSize64::b(8) - BSize64::b(5)).0, 3);
-        assert_eq!((BSize::b(8) - BSize::b(5)).0, 3);
+        assert_eq!((BSize8::b(8) - BSize8::b(5)).bytes(), 3);
+        assert_eq!((BSize16::b(8) - BSize16::b(5)).bytes(), 3);
+        assert_eq!((BSize32::b(8) - BSize32::b(5)).bytes(), 3);
+        assert_eq!((BSize64::b(8) - BSize64::b(5)).bytes(), 3);
+        assert_eq!((BSize::b(8) - BSize::b(5)).bytes(), 3);
     }
 
     #[test]
     fn sub_assigns_byte_sizes() {
         let mut size = BSize::b(8);
         size -= BSize::b(5);
-        assert_eq!(size.0, 3);
+        assert_eq!(size.bytes(), 3);
     }
 }

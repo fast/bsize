@@ -98,8 +98,8 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
         /// Returns byte count as bytes.
         ///
         /// The result is approximate when the byte count cannot be
-        /// represented exactly as `f64`. Use `.0` for the exact underlying
-        /// integer value.
+        /// represented exactly as `f64`. Use [`ByteSize::bytes`] for the
+        /// exact underlying integer value.
         #[inline(always)]
         pub const fn as_b(&self) -> f64 {
             self.0 as f64

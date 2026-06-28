@@ -15,26 +15,8 @@
 use core::any::type_name;
 use core::fmt;
 
+use crate::ByteSize;
 use crate::traits::BaseByteSize;
-
-/// Byte size representation.
-#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ByteSize<T: BaseByteSize>(pub T);
-
-/// Byte size representation backed by `usize`.
-pub type BSize = ByteSize<usize>;
-
-/// Byte size representation backed by `u8`.
-pub type BSize8 = ByteSize<u8>;
-
-/// Byte size representation backed by `u16`.
-pub type BSize16 = ByteSize<u16>;
-
-/// Byte size representation backed by `u32`.
-pub type BSize32 = ByteSize<u32>;
-
-/// Byte size representation backed by `u64`.
-pub type BSize64 = ByteSize<u64>;
 
 impl<T: BaseByteSize + fmt::Debug> fmt::Debug for ByteSize<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -59,6 +41,12 @@ impl<T: BaseByteSize> ByteSize<T> {
     pub const fn b(size: T) -> Self {
         ByteSize(size)
     }
+
+    /// Returns the exact byte count as the underlying integer type.
+    #[inline(always)]
+    pub const fn bytes(self) -> T {
+        self.0
+    }
 }
 
 #[cfg(feature = "nightly")]
@@ -68,12 +56,12 @@ mod stable;
 
 #[cfg(test)]
 mod tests {
-    use super::BSize;
-    use super::BSize8;
-    use super::BSize16;
-    use super::BSize32;
-    use super::BSize64;
-    use super::ByteSize;
+    use crate::BSize;
+    use crate::BSize8;
+    use crate::BSize16;
+    use crate::BSize32;
+    use crate::BSize64;
+    use crate::ByteSize;
     use crate::assert_close;
 
     #[test]
@@ -102,8 +90,14 @@ mod tests {
     }
 
     #[test]
+    fn returns_exact_bytes() {
+        const KIB: u64 = BSize64::kib(1).bytes();
+        assert_eq!(KIB, 1_024);
+    }
+
+    #[test]
     fn constructs_u8_units() {
-        assert_eq!(BSize8::b(2).0, 2);
+        assert_eq!(BSize8::b(2).bytes(), 2);
     }
 
     #[test]
@@ -122,8 +116,8 @@ mod tests {
 
     #[test]
     fn constructs_u16_units() {
-        assert_eq!(BSize16::kb(2).0, 2_000);
-        assert_eq!(BSize16::kib(2).0, 2_048);
+        assert_eq!(BSize16::kb(2).bytes(), 2_000);
+        assert_eq!(BSize16::kib(2).bytes(), 2_048);
     }
 
     #[test]
@@ -144,8 +138,8 @@ mod tests {
 
     #[test]
     fn constructs_u32_units() {
-        assert_eq!(BSize32::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize32::gib(2).0, 2_147_483_648);
+        assert_eq!(BSize32::gb(2).bytes(), 2_000_000_000);
+        assert_eq!(BSize32::gib(2).bytes(), 2_147_483_648);
     }
 
     #[test]
@@ -166,8 +160,8 @@ mod tests {
 
     #[test]
     fn constructs_u64_units() {
-        assert_eq!(BSize64::eb(2).0, 2_000_000_000_000_000_000);
-        assert_eq!(BSize64::eib(2).0, 2_305_843_009_213_693_952);
+        assert_eq!(BSize64::eb(2).bytes(), 2_000_000_000_000_000_000);
+        assert_eq!(BSize64::eib(2).bytes(), 2_305_843_009_213_693_952);
     }
 
     #[test]
@@ -178,8 +172,8 @@ mod tests {
     #[cfg(target_pointer_width = "16")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::kb(2).0, 2_000);
-        assert_eq!(BSize::kib(2).0, 2_048);
+        assert_eq!(BSize::kb(2).bytes(), 2_000);
+        assert_eq!(BSize::kib(2).bytes(), 2_048);
         assert_close(BSize::kb(2).as_kb(), 2.0);
         assert_close(BSize::kib(2).as_kib(), 2.0);
     }
@@ -187,12 +181,12 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::kb(2).0, 2_000);
-        assert_eq!(BSize::kib(2).0, 2_048);
+        assert_eq!(BSize::kb(2).bytes(), 2_000);
+        assert_eq!(BSize::kib(2).bytes(), 2_048);
         assert_close(BSize::kb(2).as_kb(), 2.0);
         assert_close(BSize::kib(2).as_kib(), 2.0);
-        assert_eq!(BSize::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::gib(2).0, 2_147_483_648);
+        assert_eq!(BSize::gb(2).bytes(), 2_000_000_000);
+        assert_eq!(BSize::gib(2).bytes(), 2_147_483_648);
         assert_close(BSize::gb(2).as_gb(), 2.0);
         assert_close(BSize::gib(2).as_gib(), 2.0);
     }
@@ -200,16 +194,16 @@ mod tests {
     #[cfg(target_pointer_width = "64")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::kb(2).0, 2_000);
-        assert_eq!(BSize::kib(2).0, 2_048);
+        assert_eq!(BSize::kb(2).bytes(), 2_000);
+        assert_eq!(BSize::kib(2).bytes(), 2_048);
         assert_close(BSize::kb(2).as_kb(), 2.0);
         assert_close(BSize::kib(2).as_kib(), 2.0);
-        assert_eq!(BSize::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::gib(2).0, 2_147_483_648);
+        assert_eq!(BSize::gb(2).bytes(), 2_000_000_000);
+        assert_eq!(BSize::gib(2).bytes(), 2_147_483_648);
         assert_close(BSize::gb(2).as_gb(), 2.0);
         assert_close(BSize::gib(2).as_gib(), 2.0);
-        assert_eq!(BSize::eb(2).0, 2_000_000_000_000_000_000);
-        assert_eq!(BSize::eib(2).0, 2_305_843_009_213_693_952);
+        assert_eq!(BSize::eb(2).bytes(), 2_000_000_000_000_000_000);
+        assert_eq!(BSize::eib(2).bytes(), 2_305_843_009_213_693_952);
         assert_close(BSize::eb(2).as_eb(), 2.0);
         assert_close(BSize::eib(2).as_eib(), 2.0);
     }
