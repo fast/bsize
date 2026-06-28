@@ -89,15 +89,15 @@ The [`bytesize`](https://crates.io/crates/bytesize) crate provides a `ByteSize` 
 
 I was more than happy to try `bytesize` at first. However, I found that it does not provide a way to specify the underlying integer type for the byte size. It uses `u64` internally, while most of the constants shown above are of type `usize`. This means that I have to convert between `u64` and `usize` frequently, which is not ideal. See [this issue](https://github.com/bytesize-rs/bytesize/issues/135) for more details.
 
-What's more, to support calculations between byte size wrappers and numeric types, this crate implements `ByteSize::map` for producing a new wrapper, and exposes the `.0` field for arbitrary calculations from the underlying byte count. This avoids implementing arithmetic traits for calculations between byte size wrappers and numeric types. The latter would cause confusions like what result type should be used for `bytesize::ByteSize + u64`. However, `ByteSize` implements arithmetic traits for calculations between wrappers with the same base type, which is more intuitive and less error-prone.
+What's more, to support calculations between byte size wrappers and numeric types, this crate implements `ByteSize::map` for producing a new wrapper, and exposes `ByteSize::bytes` for extracting the exact underlying byte count. This avoids implementing arithmetic traits for calculations between byte size wrappers and numeric types. The latter would cause confusions like what result type should be used for `bytesize::ByteSize + u64`. However, `ByteSize` implements arithmetic traits for calculations between wrappers with the same base type, which is more intuitive and less error-prone.
 
 ```rust
 let result = bytesize::ByteSize::kib(4) + 64; // Is the result type bytesize::ByteSize or u64? Why?
 let result = BSize64::kib(4).map(|b| b + 64); // Clearly the result type is BSize64.
-let result = BSize64::kib(4).0 + 64; // Clearly the result type is u64.
+let result = BSize64::kib(4).bytes() + 64; // Clearly the result type is u64.
 ```
 
-There is no `Unit` as well. To obtain a constant for a specific unit, you can use `BSize64::kib(1).0` and this can be resolved at compile time.
+There is no `Unit` as well. To obtain a constant for a specific unit, you can use `BSize64::kib(1).bytes()` and this can be resolved at compile time.
 
 Finally, the following issues in `bytesize` have been resolved in this crate:
 

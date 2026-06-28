@@ -53,7 +53,7 @@
 //! assert!(BSize::kib(4) > BSize::kb(4));
 //!
 //! let size: BSize = BSize::b(4_096);
-//! assert_eq!(size.0, 4_096);
+//! assert_eq!(size.bytes(), 4_096);
 //! ```
 //!
 //! Parse byte sizes from strings.
@@ -113,12 +113,12 @@
 extern crate alloc;
 
 mod display;
+mod impls;
 mod ops;
 mod parse;
 #[cfg(feature = "serde")]
 mod serde;
 mod traits;
-mod types;
 
 pub use self::display::Display;
 pub use self::display::DisplayBaseUnit;
@@ -134,12 +134,28 @@ pub use self::traits::KiloByteSize;
 pub use self::traits::MegaByteSize;
 pub use self::traits::PetaByteSize;
 pub use self::traits::TeraByteSize;
-pub use self::types::BSize;
-pub use self::types::BSize8;
-pub use self::types::BSize16;
-pub use self::types::BSize32;
-pub use self::types::BSize64;
-pub use self::types::ByteSize;
+
+/// Byte size representation.
+///
+/// Use [`ByteSize::b`] to construct a value from bytes and [`ByteSize::bytes`] to get
+/// the exact underlying byte count.
+#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ByteSize<T: BaseByteSize>(T);
+
+/// Byte size representation backed by `usize`.
+pub type BSize = ByteSize<usize>;
+
+/// Byte size representation backed by `u8`.
+pub type BSize8 = ByteSize<u8>;
+
+/// Byte size representation backed by `u16`.
+pub type BSize16 = ByteSize<u16>;
+
+/// Byte size representation backed by `u32`.
+pub type BSize32 = ByteSize<u32>;
+
+/// Byte size representation backed by `u64`.
+pub type BSize64 = ByteSize<u64>;
 
 #[cfg(test)]
 fn assert_close(actual: f64, expected: f64) {
@@ -161,7 +177,7 @@ mod property_tests {
 
     impl quickcheck::Arbitrary for ByteSize<u64> {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-            Self(u64::arbitrary(g))
+            ByteSize::b(u64::arbitrary(g))
         }
     }
 

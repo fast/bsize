@@ -29,7 +29,7 @@ macro_rules! impl_serialize {
                     if ser.is_human_readable() {
                         ser.collect_str(self)
                     } else {
-                        self.0.serialize(ser)
+                        self.bytes().serialize(ser)
                     }
                 }
             }
@@ -59,7 +59,7 @@ macro_rules! impl_deserialize {
                         fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
                             if let Ok(val) = u64::try_from(value) {
                                 if val <= <$ty>::MAX as u64 {
-                                    Ok(ByteSize(val as $ty))
+                                    Ok(ByteSize::b(val as $ty))
                                 } else {
                                     Err(E::invalid_value(
                                         de::Unexpected::Signed(value),
@@ -76,7 +76,7 @@ macro_rules! impl_deserialize {
 
                         fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
                             if value <= <$ty>::MAX as u64 {
-                                Ok(ByteSize(value as $ty))
+                                Ok(ByteSize::b(value as $ty))
                             } else {
                                 Err(E::invalid_value(
                                     de::Unexpected::Unsigned(value),
@@ -158,6 +158,6 @@ mod tests {
         assert_eq!(json, "\"1048576 B\"");
 
         let deserialized = serde_json::from_str::<BSize>(&json).unwrap();
-        assert_eq!(deserialized.0, 1048576);
+        assert_eq!(deserialized.bytes(), 1048576);
     }
 }

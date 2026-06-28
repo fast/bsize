@@ -31,7 +31,7 @@ impl<T: BaseByteSize> ByteSize<T> {
     ///
     /// See [`Display`] for examples.
     pub fn display(&self) -> Display {
-        Display::new(self.0.to_f64())
+        Display::new(self.bytes().to_f64())
     }
 }
 

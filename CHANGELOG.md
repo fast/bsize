@@ -4,6 +4,15 @@ All significant changes to this software be documented in this file.
 
 ## Unreleased
 
+### Breaking changes
+
+* Made the inner `ByteSize` field private. Use `ByteSize::b` to construct byte sizes and
+  `ByteSize::bytes` to get the exact underlying byte count.
+
+### New features
+
+* Added `ByteSize::bytes` for returning the exact byte count as the underlying integer type.
+
 ## v0.3.0 (2026-06-28)
 
 ### Breaking changes
