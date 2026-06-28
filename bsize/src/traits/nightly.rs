@@ -19,7 +19,7 @@ use super::private;
 /// A sealed trait for integer types that can back [`ByteSize`](crate::ByteSize).
 ///
 /// This trait is implemented only for the unsigned integer types supported by this crate.
-pub const trait BaseByteSize: private::Sealed + Clone + Copy + Sized {
+pub const trait BaseByteSize: private::Sealed + Copy + Sized {
     /// Returns this byte count as an approximate `f64`.
     fn to_f64(&self) -> f64;
 }
