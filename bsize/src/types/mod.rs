@@ -54,11 +54,6 @@ impl<T: BaseByteSize + fmt::Display> fmt::Display for ByteSize<T> {
 }
 
 impl<T: BaseByteSize> ByteSize<T> {
-    /// Calculate a new byte size with the provided function, returning a new struct.
-    pub fn map(self, f: impl FnOnce(T) -> T) -> Self {
-        ByteSize(f(self.0))
-    }
-
     /// Constructs a byte size wrapper from a quantity of bytes.
     #[inline(always)]
     pub const fn b(size: T) -> Self {
