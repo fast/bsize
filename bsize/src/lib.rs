@@ -20,7 +20,7 @@
 //!
 //! # Features
 //!
-//! * `#![no_std]`-capable, no dependencies, and uses no heap allocation.
+//! * `#![no_std]`-capable, no heap allocation, and no runtime dependencies by default.
 //! * [`BSize`] wrappers over `u8`, `u16`, `u32`, `u64`, and `usize` for representing byte sizes
 //!   with different underlying types.
 //! * `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB"

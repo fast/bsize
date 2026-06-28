@@ -76,116 +76,47 @@ pub const trait ExaByteSize: [const] PetaByteSize {
     const EIB: Self;
 }
 
-macro_rules! impl_byte_size {
-    ($($ty:ty),* $(,)?) => {
-        $(
-            const impl ByteSize for $ty {
-                fn to_f64(&self) -> f64 {
-                    *self as f64
-                }
-            }
-        )*
-    };
-}
-
-impl_byte_size!(u8, u16, u32, u64, usize);
-
-macro_rules! impl_size_trait {
-    ($trait:ident for $ty:ty { $($name:ident = $value:literal),* $(,)? }) => {
-        const impl $trait for $ty {
-            $(const $name: Self = $value;)*
+macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
+    const impl ByteSize for Ty {
+        fn to_f64(&self) -> f64 {
+            *self as f64
         }
-    };
-}
-
-macro_rules! impl_usize_size_traits {
-    (through_kilo) => {
-        impl_size_trait!(KiloByteSize for usize {
-            KB = 1_000,
-            KIB = 1_024,
-        });
-    };
-    (through_giga) => {
-        impl_usize_size_traits!(through_kilo);
-        impl_size_trait!(MegaByteSize for usize {
-            MB = 1_000_000,
-            MIB = 1_048_576,
-        });
-        impl_size_trait!(GigaByteSize for usize {
-            GB = 1_000_000_000,
-            GIB = 1_073_741_824,
-        });
-    };
-    (through_exa) => {
-        impl_usize_size_traits!(through_giga);
-        impl_size_trait!(TeraByteSize for usize {
-            TB = 1_000_000_000_000,
-            TIB = 1_099_511_627_776,
-        });
-        impl_size_trait!(PetaByteSize for usize {
-            PB = 1_000_000_000_000_000,
-            PIB = 1_125_899_906_842_624,
-        });
-        impl_size_trait!(ExaByteSize for usize {
-            EB = 1_000_000_000_000_000_000,
-            EIB = 1_152_921_504_606_846_976,
-        });
-    };
-}
-
-impl_size_trait!(KiloByteSize for u16 {
-    KB = 1_000,
-    KIB = 1_024,
+    }
 });
 
-impl_size_trait!(KiloByteSize for u32 {
-    KB = 1_000,
-    KIB = 1_024,
+macroweave::repeat!((Trait, Ty, DecimalName, BinaryName, Scale) in [
+    (KiloByteSize, u16, KB, KIB, 1),
+    (KiloByteSize, u32, KB, KIB, 1),
+    (MegaByteSize, u32, MB, MIB, 2),
+    (GigaByteSize, u32, GB, GIB, 3),
+    (KiloByteSize, u64, KB, KIB, 1),
+    (MegaByteSize, u64, MB, MIB, 2),
+    (GigaByteSize, u64, GB, GIB, 3),
+    (TeraByteSize, u64, TB, TIB, 4),
+    (PetaByteSize, u64, PB, PIB, 5),
+    (ExaByteSize, u64, EB, EIB, 6),
+] {
+    const impl Trait for Ty {
+        const DecimalName: Self = Ty::pow(1000, Scale);
+        const BinaryName: Self = Ty::pow(1024, Scale);
+    }
 });
 
-impl_size_trait!(MegaByteSize for u32 {
-    MB = 1_000_000,
-    MIB = 1_048_576,
+macroweave::repeat!((PointerWidth, Trait, DecimalName, BinaryName, Scale) in [
+    ("16", KiloByteSize, KB, KIB, 1),
+    ("32", KiloByteSize, KB, KIB, 1),
+    ("32", MegaByteSize, MB, MIB, 2),
+    ("32", GigaByteSize, GB, GIB, 3),
+    ("64", KiloByteSize, KB, KIB, 1),
+    ("64", MegaByteSize, MB, MIB, 2),
+    ("64", GigaByteSize, GB, GIB, 3),
+    ("64", TeraByteSize, TB, TIB, 4),
+    ("64", PetaByteSize, PB, PIB, 5),
+    ("64", ExaByteSize, EB, EIB, 6),
+] {
+    #[cfg(target_pointer_width = PointerWidth)]
+    const impl Trait for usize {
+        const DecimalName: Self = usize::pow(1000, Scale);
+        const BinaryName: Self = usize::pow(1024, Scale);
+    }
 });
-
-impl_size_trait!(GigaByteSize for u32 {
-    GB = 1_000_000_000,
-    GIB = 1_073_741_824,
-});
-
-impl_size_trait!(KiloByteSize for u64 {
-    KB = 1_000,
-    KIB = 1_024,
-});
-
-impl_size_trait!(MegaByteSize for u64 {
-    MB = 1_000_000,
-    MIB = 1_048_576,
-});
-
-impl_size_trait!(GigaByteSize for u64 {
-    GB = 1_000_000_000,
-    GIB = 1_073_741_824,
-});
-
-impl_size_trait!(TeraByteSize for u64 {
-    TB = 1_000_000_000_000,
-    TIB = 1_099_511_627_776,
-});
-
-impl_size_trait!(PetaByteSize for u64 {
-    PB = 1_000_000_000_000_000,
-    PIB = 1_125_899_906_842_624,
-});
-
-impl_size_trait!(ExaByteSize for u64 {
-    EB = 1_000_000_000_000_000_000,
-    EIB = 1_152_921_504_606_846_976,
-});
-
-#[cfg(target_pointer_width = "16")]
-impl_usize_size_traits!(through_kilo);
-#[cfg(target_pointer_width = "32")]
-impl_usize_size_traits!(through_giga);
-#[cfg(target_pointer_width = "64")]
-impl_usize_size_traits!(through_exa);

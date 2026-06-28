@@ -16,42 +16,36 @@ use core::ops;
 
 use crate::types::BSize;
 
-macro_rules! impl_ops {
-    ($($ty:ty),* $(,)?) => {
-        $(
-            impl ops::Add<BSize<$ty>> for BSize<$ty> {
-                type Output = Self;
+macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
+    impl ops::Add<BSize<Ty>> for BSize<Ty> {
+        type Output = Self;
 
-                #[inline(always)]
-                fn add(self, rhs: BSize<$ty>) -> Self::Output {
-                    BSize(self.0 + rhs.0)
-                }
-            }
+        #[inline(always)]
+        fn add(self, rhs: BSize<Ty>) -> Self::Output {
+            BSize(self.0 + rhs.0)
+        }
+    }
 
-            impl ops::AddAssign<BSize<$ty>> for BSize<$ty> {
-                #[inline(always)]
-                fn add_assign(&mut self, rhs: BSize<$ty>) {
-                    self.0 += rhs.0;
-                }
-            }
+    impl ops::AddAssign<BSize<Ty>> for BSize<Ty> {
+        #[inline(always)]
+        fn add_assign(&mut self, rhs: BSize<Ty>) {
+            self.0 += rhs.0;
+        }
+    }
 
-            impl ops::Sub<BSize<$ty>> for BSize<$ty> {
-                type Output = Self;
+    impl ops::Sub<BSize<Ty>> for BSize<Ty> {
+        type Output = Self;
 
-                #[inline(always)]
-                fn sub(self, rhs: BSize<$ty>) -> Self::Output {
-                    BSize(self.0 - rhs.0)
-                }
-            }
+        #[inline(always)]
+        fn sub(self, rhs: BSize<Ty>) -> Self::Output {
+            BSize(self.0 - rhs.0)
+        }
+    }
 
-            impl ops::SubAssign<BSize<$ty>> for BSize<$ty> {
-                #[inline(always)]
-                fn sub_assign(&mut self, rhs: BSize<$ty>) {
-                    self.0 -= rhs.0;
-                }
-            }
-        )*
-    };
-}
-
-impl_ops!(u8, u16, u32, u64, usize);
+    impl ops::SubAssign<BSize<Ty>> for BSize<Ty> {
+        #[inline(always)]
+        fn sub_assign(&mut self, rhs: BSize<Ty>) {
+            self.0 -= rhs.0;
+        }
+    }
+});

@@ -20,7 +20,7 @@ This crate provides multiple semantic wrappers and utilities for byte size repre
 
 ## Features
 
-* `#![no_std]`-capable, no dependencies, and uses no heap allocation.
+* `#![no_std]`-capable, no heap allocation, and no runtime dependencies by default.
 * `BSize` wrappers over `u8`, `u16`, `u32`, `u64`, and `usize` for representing byte sizes with different underlying types.
 * `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB".
 * `Display` impl for `BSize`, allowing for formatting byte sizes as human-readable strings in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
