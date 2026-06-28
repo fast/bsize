@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::BSize;
-use crate::traits::ByteSize;
+use super::ByteSize;
+use crate::traits::BaseByteSize;
 use crate::traits::ExaByteSize;
 use crate::traits::GigaByteSize;
 use crate::traits::KiloByteSize;
@@ -21,7 +21,7 @@ use crate::traits::MegaByteSize;
 use crate::traits::PetaByteSize;
 use crate::traits::TeraByteSize;
 
-impl<T: ByteSize> BSize<T> {
+impl<T: BaseByteSize> ByteSize<T> {
     /// Returns byte count as bytes.
     ///
     /// The result is approximate when the byte count cannot be represented
@@ -29,20 +29,20 @@ impl<T: ByteSize> BSize<T> {
     #[inline(always)]
     pub const fn as_b(&self) -> f64
     where
-        T: [const] ByteSize,
+        T: [const] BaseByteSize,
     {
         self.0.to_f64()
     }
 }
 
-impl<T: KiloByteSize> BSize<T> {
+impl<T: KiloByteSize> ByteSize<T> {
     /// Constructs a byte size wrapper from a quantity of `kb` units.
     #[inline(always)]
     pub const fn kb(size: T) -> Self
     where
         T: [const] KiloByteSize,
     {
-        BSize(size * T::KB)
+        ByteSize(size * T::KB)
     }
 
     /// Constructs a byte size wrapper from a quantity of `kib` units.
@@ -51,7 +51,7 @@ impl<T: KiloByteSize> BSize<T> {
     where
         T: [const] KiloByteSize,
     {
-        BSize(size * T::KIB)
+        ByteSize(size * T::KIB)
     }
 
     /// Returns byte count as kilobytes.
@@ -79,14 +79,14 @@ impl<T: KiloByteSize> BSize<T> {
     }
 }
 
-impl<T: MegaByteSize> BSize<T> {
+impl<T: MegaByteSize> ByteSize<T> {
     /// Constructs a byte size wrapper from a quantity of `mb` units.
     #[inline(always)]
     pub const fn mb(size: T) -> Self
     where
         T: [const] MegaByteSize,
     {
-        BSize(size * T::MB)
+        ByteSize(size * T::MB)
     }
 
     /// Constructs a byte size wrapper from a quantity of `mib` units.
@@ -95,7 +95,7 @@ impl<T: MegaByteSize> BSize<T> {
     where
         T: [const] MegaByteSize,
     {
-        BSize(size * T::MIB)
+        ByteSize(size * T::MIB)
     }
 
     /// Returns byte count as megabytes.
@@ -123,14 +123,14 @@ impl<T: MegaByteSize> BSize<T> {
     }
 }
 
-impl<T: GigaByteSize> BSize<T> {
+impl<T: GigaByteSize> ByteSize<T> {
     /// Constructs a byte size wrapper from a quantity of `gb` units.
     #[inline(always)]
     pub const fn gb(size: T) -> Self
     where
         T: [const] GigaByteSize,
     {
-        BSize(size * T::GB)
+        ByteSize(size * T::GB)
     }
 
     /// Constructs a byte size wrapper from a quantity of `gib` units.
@@ -139,7 +139,7 @@ impl<T: GigaByteSize> BSize<T> {
     where
         T: [const] GigaByteSize,
     {
-        BSize(size * T::GIB)
+        ByteSize(size * T::GIB)
     }
 
     /// Returns byte count as gigabytes.
@@ -167,14 +167,14 @@ impl<T: GigaByteSize> BSize<T> {
     }
 }
 
-impl<T: TeraByteSize> BSize<T> {
+impl<T: TeraByteSize> ByteSize<T> {
     /// Constructs a byte size wrapper from a quantity of `tb` units.
     #[inline(always)]
     pub const fn tb(size: T) -> Self
     where
         T: [const] TeraByteSize,
     {
-        BSize(size * T::TB)
+        ByteSize(size * T::TB)
     }
 
     /// Constructs a byte size wrapper from a quantity of `tib` units.
@@ -183,7 +183,7 @@ impl<T: TeraByteSize> BSize<T> {
     where
         T: [const] TeraByteSize,
     {
-        BSize(size * T::TIB)
+        ByteSize(size * T::TIB)
     }
 
     /// Returns byte count as terabytes.
@@ -211,14 +211,14 @@ impl<T: TeraByteSize> BSize<T> {
     }
 }
 
-impl<T: PetaByteSize> BSize<T> {
+impl<T: PetaByteSize> ByteSize<T> {
     /// Constructs a byte size wrapper from a quantity of `pb` units.
     #[inline(always)]
     pub const fn pb(size: T) -> Self
     where
         T: [const] PetaByteSize,
     {
-        BSize(size * T::PB)
+        ByteSize(size * T::PB)
     }
 
     /// Constructs a byte size wrapper from a quantity of `pib` units.
@@ -227,7 +227,7 @@ impl<T: PetaByteSize> BSize<T> {
     where
         T: [const] PetaByteSize,
     {
-        BSize(size * T::PIB)
+        ByteSize(size * T::PIB)
     }
 
     /// Returns byte count as petabytes.
@@ -255,14 +255,14 @@ impl<T: PetaByteSize> BSize<T> {
     }
 }
 
-impl<T: ExaByteSize> BSize<T> {
+impl<T: ExaByteSize> ByteSize<T> {
     /// Constructs a byte size wrapper from a quantity of `eb` units.
     #[inline(always)]
     pub const fn eb(size: T) -> Self
     where
         T: [const] ExaByteSize,
     {
-        BSize(size * T::EB)
+        ByteSize(size * T::EB)
     }
 
     /// Constructs a byte size wrapper from a quantity of `eib` units.
@@ -271,7 +271,7 @@ impl<T: ExaByteSize> BSize<T> {
     where
         T: [const] ExaByteSize,
     {
-        BSize(size * T::EIB)
+        ByteSize(size * T::EIB)
     }
 
     /// Returns byte count as exabytes.
@@ -301,26 +301,26 @@ impl<T: ExaByteSize> BSize<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::BSize;
+    use super::ByteSize;
     use crate::assert_close;
 
     #[test]
     fn infers_constructor_type_from_argument() {
-        assert_eq!(BSize::kib(16_u64), BSize::b(16 * 1_024));
-        assert_eq!(BSize::mib(16_u32), BSize::b(16 * 1_048_576));
+        assert_eq!(ByteSize::kib(16_u64), ByteSize::b(16 * 1_024));
+        assert_eq!(ByteSize::mib(16_u32), ByteSize::b(16 * 1_048_576));
     }
 
     #[test]
     fn inferred_constructor_is_const() {
-        const SIZE: BSize<u64> = BSize::kib(16_u64);
+        const SIZE: ByteSize<u64> = ByteSize::kib(16_u64);
 
-        assert_eq!(SIZE, BSize::b(16 * 1_024));
+        assert_eq!(SIZE, ByteSize::b(16 * 1_024));
     }
 
     #[test]
     fn inferred_accessors_are_const() {
-        const BYTES: f64 = BSize::b(16_u64).as_b();
-        const KIB: f64 = BSize::kib(16_u64).as_kib();
+        const BYTES: f64 = ByteSize::b(16_u64).as_b();
+        const KIB: f64 = ByteSize::kib(16_u64).as_kib();
 
         assert_close(BYTES, 16.0);
         assert_close(KIB, 16.0);

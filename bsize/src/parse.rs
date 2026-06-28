@@ -16,7 +16,7 @@ use core::convert::TryFrom;
 use core::fmt;
 use core::str::FromStr;
 
-use crate::BSize;
+use crate::BaseByteSize;
 use crate::ByteSize;
 
 /// The error returned when parsing a byte size fails.
@@ -44,7 +44,7 @@ impl fmt::Display for ParseError {
 impl core::error::Error for ParseError {}
 
 macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
-    impl FromStr for BSize<Ty> {
+    impl FromStr for ByteSize<Ty> {
         type Err = ParseError;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -53,12 +53,12 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
     }
 });
 
-fn bsize_from_u64<T>(size: u64) -> Result<BSize<T>, ParseError>
+fn bsize_from_u64<T>(size: u64) -> Result<ByteSize<T>, ParseError>
 where
-    T: ByteSize + TryFrom<u64>,
+    T: BaseByteSize + TryFrom<u64>,
 {
     T::try_from(size)
-        .map(BSize)
+        .map(ByteSize)
         .map_err(|_| ParseError::Overflow)
 }
 
@@ -204,17 +204,17 @@ mod tests {
     use super::*;
 
     fn assert_parse_ok(input: &str, expected: u64) {
-        let actual = BSize::<u64>::from_str(input).unwrap();
-        let expected = BSize::<u64>(expected);
+        let actual = ByteSize::<u64>::from_str(input).unwrap();
+        let expected = ByteSize::<u64>(expected);
         assert_eq!(actual, expected, "input: {input:?}");
 
-        let round_trip = actual.to_string().parse::<BSize<u64>>().unwrap();
+        let round_trip = actual.to_string().parse::<ByteSize<u64>>().unwrap();
         assert_eq!(round_trip, expected, "input: {input:?}");
     }
 
     fn assert_parse_err(input: &str, expected: ParseError) {
         assert_eq!(
-            input.parse::<BSize<u64>>(),
+            input.parse::<ByteSize<u64>>(),
             Err(expected),
             "input: {input:?}",
         );
@@ -315,8 +315,8 @@ mod tests {
             assert_parse_err(input, ParseError::Overflow);
         }
 
-        assert_eq!("256".parse::<BSize<u8>>(), Err(ParseError::Overflow));
-        assert_eq!("64 KiB".parse::<BSize<u16>>(), Err(ParseError::Overflow));
-        assert_eq!("4GiB".parse::<BSize<u32>>(), Err(ParseError::Overflow));
+        assert_eq!("256".parse::<ByteSize<u8>>(), Err(ParseError::Overflow));
+        assert_eq!("64 KiB".parse::<ByteSize<u16>>(), Err(ParseError::Overflow));
+        assert_eq!("4GiB".parse::<ByteSize<u32>>(), Err(ParseError::Overflow));
     }
 }

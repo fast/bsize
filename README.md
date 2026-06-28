@@ -21,11 +21,11 @@ This crate provides multiple semantic wrappers and utilities for byte size repre
 ## Features
 
 * `#![no_std]`-capable, no heap allocation, and no runtime dependencies by default.
-* `BSize` defaults to `usize`, with `BSize8`, `BSize16`, `BSize32`, and `BSize64` aliases for representing byte sizes with different underlying types.
-* `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB".
-* `Display` impl for `BSize`, allowing for formatting byte sizes as human-readable strings in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
+* `ByteSize<T>` wrappers over supported unsigned integer base types, with `BSize` as the `usize` alias and `BSize8`, `BSize16`, `BSize32`, and `BSize64` aliases for fixed-width base types.
+* `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB".
+* `Display` impl for `ByteSize`, allowing for formatting byte sizes as human-readable strings in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
 * Optional `serde` support for binary and human-readable format.
-* Optional `nightly` support for generic const unit constructors, allowing calls like `BSize::kib(16_u64)`.
+* Optional `nightly` support for generic const unit constructors, allowing calls like `ByteSize::kib(16_u64)`.
 
 ## Documentation
 
@@ -59,10 +59,10 @@ const RESULT_SIZE_LIMIT: usize = 8 * 1024 * 1024 * 1024; // 8 GiB
 I want them to be:
 
 ```rust
-const BASE_BLOB_INDEX_SIZE: BSize = BSize::<usize>::kib(4);
-const BASE_BLOCK_SIZE: BSize = BSize::<usize>::mib(16);
-const RESERVED_MEMORY: BSize = BSize::<usize>::mib(256);
-const RESULT_SIZE_LIMIT: BSize = BSize::<usize>::gib(8);
+const BASE_BLOB_INDEX_SIZE: BSize = BSize::kib(4);
+const BASE_BLOCK_SIZE: BSize = BSize::mib(16);
+const RESERVED_MEMORY: BSize = BSize::mib(256);
+const RESULT_SIZE_LIMIT: BSize = BSize::gib(8);
 ```
 
 So you don't have to multiply the numbers by hand and rely on comments to indicate the units. This also makes it easier to change the units later if needed.
@@ -85,11 +85,11 @@ The [`bytesize`](https://crates.io/crates/bytesize) crate provides a `ByteSize` 
 
 I was more than happy to try `bytesize` at first. However, I found that it does not provide a way to specify the underlying integer type for the byte size. It uses `u64` internally, while most of the constants shown above are of type `usize`. This means that I have to convert between `u64` and `usize` frequently, which is not ideal. See [this issue](https://github.com/bytesize-rs/bytesize/issues/135) for more details.
 
-What's more, to support calculations between `BSize` and numeric types, this crate implements `BSize::map` for producing a new `BSize`, and exposes the `.0` field for arbitrary calculations from the underlying byte count. This avoids implementing arithmetic traits for calculations between `BSize` and numeric types. The latter would cause confusions like what result type should be used for `ByteSize + u64`. However, `BSize` implements arithmetic traits for calculations between `BSize` and `BSize`, which is more intuitive and less error-prone.
+What's more, to support calculations between byte size wrappers and numeric types, this crate implements `ByteSize::map` for producing a new wrapper, and exposes the `.0` field for arbitrary calculations from the underlying byte count. This avoids implementing arithmetic traits for calculations between byte size wrappers and numeric types. The latter would cause confusions like what result type should be used for `bytesize::ByteSize + u64`. However, `ByteSize` implements arithmetic traits for calculations between wrappers with the same base type, which is more intuitive and less error-prone.
 
 ```rust
-let result = ByteSize::kib(4) + 64; // Is the result type ByteSize or u64? Why?
-let result = BSize64::kib(4).map(|b| b + 64); // Clearly the result type is BSize.
+let result = bytesize::ByteSize::kib(4) + 64; // Is the result type bytesize::ByteSize or u64? Why?
+let result = BSize64::kib(4).map(|b| b + 64); // Clearly the result type is BSize64.
 let result = BSize64::kib(4).0 + 64; // Clearly the result type is u64.
 ```
 

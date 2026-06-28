@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::BSize;
+use super::ByteSize;
 
 macroweave::repeat!((Ty, Name, Trait, Size) in [
     (u16, kb, KiloByteSize, KB),
@@ -36,7 +36,7 @@ macroweave::repeat!((Ty, Name, Trait, Size) in [
     (u64, eb, ExaByteSize, EB),
     (u64, eib, ExaByteSize, EIB),
 ] {
-    impl BSize<Ty> {
+    impl ByteSize<Ty> {
         #[doc = concat!(
             "Constructs a byte size wrapper from a quantity of `",
             stringify!(Name),
@@ -44,7 +44,7 @@ macroweave::repeat!((Ty, Name, Trait, Size) in [
         )]
         #[inline(always)]
         pub const fn Name(size: Ty) -> Self {
-            BSize(size * <Ty as crate::traits::Trait>::Size)
+            ByteSize(size * <Ty as crate::traits::Trait>::Size)
         }
     }
 });
@@ -72,7 +72,7 @@ macroweave::repeat!((PointerWidth, Name, Trait, Size) in [
     ("64", eib, ExaByteSize, EIB),
 ] {
     #[cfg(target_pointer_width = PointerWidth)]
-    impl BSize<usize> {
+    impl ByteSize<usize> {
         #[doc = concat!(
             "Constructs a byte size wrapper from a quantity of `",
             stringify!(Name),
@@ -80,13 +80,13 @@ macroweave::repeat!((PointerWidth, Name, Trait, Size) in [
         )]
         #[inline(always)]
         pub const fn Name(size: usize) -> Self {
-            BSize(size * <usize as crate::traits::Trait>::Size)
+            ByteSize(size * <usize as crate::traits::Trait>::Size)
         }
     }
 });
 
 macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
-    impl BSize<Ty> {
+    impl ByteSize<Ty> {
         /// Returns byte count as bytes.
         ///
         /// The result is approximate when the byte count cannot be
@@ -121,7 +121,7 @@ macroweave::repeat!((Ty, Name, Trait, Size, Unit) in [
     (u64, as_eb, ExaByteSize, EB, "exabytes"),
     (u64, as_eib, ExaByteSize, EIB, "exbibytes"),
 ] {
-    impl BSize<Ty> {
+    impl ByteSize<Ty> {
         #[doc = concat!("Returns byte count as ", Unit, ".")]
         ///
         /// The result is approximate when the byte count cannot be
@@ -156,7 +156,7 @@ macroweave::repeat!((PointerWidth, Name, Trait, Size, Unit) in [
     ("64", as_eib, ExaByteSize, EIB, "exbibytes"),
 ] {
     #[cfg(target_pointer_width = PointerWidth)]
-    impl BSize<usize> {
+    impl ByteSize<usize> {
         #[doc = concat!("Returns byte count as ", Unit, ".")]
         ///
         /// The result is approximate when the byte count cannot be

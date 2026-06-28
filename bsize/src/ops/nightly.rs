@@ -14,70 +14,70 @@
 
 use core::ops;
 
-use crate::traits::ByteSize;
-use crate::types::BSize;
+use crate::traits::BaseByteSize;
+use crate::types::ByteSize;
 
-const impl<T> ops::Add<BSize<T>> for BSize<T>
+const impl<T> ops::Add<ByteSize<T>> for ByteSize<T>
 where
-    T: [const] ByteSize + [const] ops::Add<Output = T>,
+    T: [const] BaseByteSize + [const] ops::Add<Output = T>,
 {
     type Output = Self;
 
     #[inline(always)]
-    fn add(self, rhs: BSize<T>) -> Self::Output {
-        BSize(self.0 + rhs.0)
+    fn add(self, rhs: ByteSize<T>) -> Self::Output {
+        ByteSize(self.0 + rhs.0)
     }
 }
 
-const impl<T> ops::AddAssign<BSize<T>> for BSize<T>
+const impl<T> ops::AddAssign<ByteSize<T>> for ByteSize<T>
 where
-    T: [const] ByteSize + [const] ops::AddAssign,
+    T: [const] BaseByteSize + [const] ops::AddAssign,
 {
     #[inline(always)]
-    fn add_assign(&mut self, rhs: BSize<T>) {
+    fn add_assign(&mut self, rhs: ByteSize<T>) {
         self.0 += rhs.0;
     }
 }
 
-const impl<T> ops::Sub<BSize<T>> for BSize<T>
+const impl<T> ops::Sub<ByteSize<T>> for ByteSize<T>
 where
-    T: [const] ByteSize + [const] ops::Sub<Output = T>,
+    T: [const] BaseByteSize + [const] ops::Sub<Output = T>,
 {
     type Output = Self;
 
     #[inline(always)]
-    fn sub(self, rhs: BSize<T>) -> Self::Output {
-        BSize(self.0 - rhs.0)
+    fn sub(self, rhs: ByteSize<T>) -> Self::Output {
+        ByteSize(self.0 - rhs.0)
     }
 }
 
-const impl<T> ops::SubAssign<BSize<T>> for BSize<T>
+const impl<T> ops::SubAssign<ByteSize<T>> for ByteSize<T>
 where
-    T: [const] ByteSize + [const] ops::SubAssign,
+    T: [const] BaseByteSize + [const] ops::SubAssign,
 {
     #[inline(always)]
-    fn sub_assign(&mut self, rhs: BSize<T>) {
+    fn sub_assign(&mut self, rhs: ByteSize<T>) {
         self.0 -= rhs.0;
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::BSize;
+    use crate::BSize64;
 
     #[test]
     fn arithmetic_is_const() {
-        const SUM: BSize<u64> = BSize::b(3_u64) + BSize::b(5_u64);
-        const DIFFERENCE: BSize<u64> = BSize::b(8_u64) - BSize::b(5_u64);
-        const ASSIGNED: BSize<u64> = {
-            let mut size = BSize::b(3_u64);
-            size += BSize::b(5_u64);
-            size -= BSize::b(2_u64);
+        const SUM: BSize64 = BSize64::b(3) + BSize64::b(5);
+        const DIFFERENCE: BSize64 = BSize64::b(8) - BSize64::b(5);
+        const ASSIGNED: BSize64 = {
+            let mut size = BSize64::b(3);
+            size += BSize64::b(5);
+            size -= BSize64::b(2);
             size
         };
 
-        assert_eq!(SUM, BSize::b(8));
-        assert_eq!(DIFFERENCE, BSize::b(3));
-        assert_eq!(ASSIGNED, BSize::b(6));
+        assert_eq!(SUM, BSize64::b(8));
+        assert_eq!(DIFFERENCE, BSize64::b(3));
+        assert_eq!(ASSIGNED, BSize64::b(6));
     }
 }
