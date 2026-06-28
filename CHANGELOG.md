@@ -4,6 +4,8 @@ All significant changes to this software be documented in this file.
 
 ## Unreleased
 
+## v0.3.0 (2026-06-28)
+
 ### Breaking changes
 
 * Renamed the old `BSize::with` mapping API to `BSize::map`.
@@ -17,6 +19,7 @@ All significant changes to this software be documented in this file.
 * Added `BSize8`, `BSize16`, `BSize32`, and `BSize64` aliases.
 * Added `BaseByteSize::to_f64` for converting supported byte size base types to approximate `f64` values.
 * Added `BSize::as_b` for returning the byte count as an approximate `f64`.
+* Added support for formatting positive infinity with `Display::new`, which acts as an overflow marker.
 
 ## v0.2.1 (2026-06-27)
 

@@ -327,9 +327,9 @@ impl Display {
     ///
     /// # Panics
     ///
-    /// Panics if the `size` is not finite or is negative.
+    /// Panics if the `size` is NaN or negative.
     pub fn new(size: f64) -> Self {
-        assert!(size.is_finite() && size >= 0.0);
+        assert!(size >= 0.0, "size must be non-negative and not NaN");
         let options = DisplayOptions::BINARY;
         Self { size, options }
     }
@@ -524,15 +524,15 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn test_new_rejects_nan_size() {
-        Display::new(f64::NAN);
+    fn test_formats_infinite_size() {
+        assert_snapshot!(Display::new(f64::INFINITY).binary(), @"inf EiB");
+        assert_snapshot!(Display::new(f64::INFINITY).decimal(), @"inf EB");
     }
 
     #[test]
     #[should_panic]
-    fn test_new_rejects_infinite_size() {
-        Display::new(f64::INFINITY);
+    fn test_new_rejects_nan_size() {
+        Display::new(f64::NAN);
     }
 
     #[test]
