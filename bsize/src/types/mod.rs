@@ -56,6 +56,24 @@ impl<T: ByteSize> BSize<T> {
     }
 }
 
+macro_rules! impl_byte_accessor {
+    ($($ty:ty),* $(,)?) => {
+        $(
+            impl BSize<$ty> {
+                /// Returns byte count as bytes.
+                ///
+                /// The result is approximate when the byte count cannot be
+                /// represented exactly as `f64`. Use `.0` or [`BSize::with`]
+                /// for the exact underlying integer value.
+                #[inline(always)]
+                pub const fn as_b(&self) -> f64 {
+                    self.0 as f64
+                }
+            }
+        )*
+    };
+}
+
 macro_rules! impl_accessors {
     ($ty:ty => { $($name:ident = $trait:ident::$size:ident => $unit:literal),* $(,)? }) => {
         impl BSize<$ty> {
@@ -72,6 +90,8 @@ macro_rules! impl_accessors {
         }
     };
 }
+
+impl_byte_accessor!(u8, u16, u32, u64, usize);
 
 macro_rules! impl_usize_accessors {
     (through_kilo) => {
@@ -173,6 +193,15 @@ mod tests {
     #[test]
     fn constructs_u8_units() {
         assert_eq!(BSize::<u8>::b(2).0, 2);
+    }
+
+    #[test]
+    fn returns_byte_units() {
+        assert_close(BSize::<u8>::b(2).as_b(), 2.0);
+        assert_close(BSize::<u16>::b(2).as_b(), 2.0);
+        assert_close(BSize::<u32>::b(2).as_b(), 2.0);
+        assert_close(BSize::<u64>::b(2).as_b(), 2.0);
+        assert_close(BSize::<usize>::b(2).as_b(), 2.0);
     }
 
     #[test]
