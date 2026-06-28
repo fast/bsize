@@ -14,37 +14,37 @@
 
 use core::ops;
 
-use crate::types::BSize;
+use crate::types::ByteSize;
 
 macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
-    impl ops::Add<BSize<Ty>> for BSize<Ty> {
+    impl ops::Add<ByteSize<Ty>> for ByteSize<Ty> {
         type Output = Self;
 
         #[inline(always)]
-        fn add(self, rhs: BSize<Ty>) -> Self::Output {
-            BSize(self.0 + rhs.0)
+        fn add(self, rhs: ByteSize<Ty>) -> Self::Output {
+            ByteSize(self.0 + rhs.0)
         }
     }
 
-    impl ops::AddAssign<BSize<Ty>> for BSize<Ty> {
+    impl ops::AddAssign<ByteSize<Ty>> for ByteSize<Ty> {
         #[inline(always)]
-        fn add_assign(&mut self, rhs: BSize<Ty>) {
+        fn add_assign(&mut self, rhs: ByteSize<Ty>) {
             self.0 += rhs.0;
         }
     }
 
-    impl ops::Sub<BSize<Ty>> for BSize<Ty> {
+    impl ops::Sub<ByteSize<Ty>> for ByteSize<Ty> {
         type Output = Self;
 
         #[inline(always)]
-        fn sub(self, rhs: BSize<Ty>) -> Self::Output {
-            BSize(self.0 - rhs.0)
+        fn sub(self, rhs: ByteSize<Ty>) -> Self::Output {
+            ByteSize(self.0 - rhs.0)
         }
     }
 
-    impl ops::SubAssign<BSize<Ty>> for BSize<Ty> {
+    impl ops::SubAssign<ByteSize<Ty>> for ByteSize<Ty> {
         #[inline(always)]
-        fn sub_assign(&mut self, rhs: BSize<Ty>) {
+        fn sub_assign(&mut self, rhs: ByteSize<Ty>) {
             self.0 -= rhs.0;
         }
     }

@@ -15,18 +15,18 @@
 use core::fmt;
 use core::fmt::Write as _;
 
-use crate::BSize;
+use crate::BaseByteSize;
 use crate::ByteSize;
 
 /// Create a [`Display`] instance for displaying a byte size.
 ///
 /// See [`Display`] for examples. Use [`Display::new`] when the byte count is already represented
 /// as an `f64`.
-pub fn display(size: impl ByteSize) -> Display {
+pub fn display(size: impl BaseByteSize) -> Display {
     Display::new(size.to_f64())
 }
 
-impl<T: ByteSize> BSize<T> {
+impl<T: BaseByteSize> ByteSize<T> {
     /// Returns a [`Display`] wrapper.
     ///
     /// See [`Display`] for examples.
@@ -37,7 +37,7 @@ impl<T: ByteSize> BSize<T> {
 
 /// Display wrapper for formatting byte sizes as human-readable strings.
 ///
-/// You may create this wrapper with [`Display::new`], [`display`], or [`BSize::display`], then
+/// You may create this wrapper with [`Display::new`], [`display`], or [`ByteSize::display`], then
 /// pass custom [`DisplayOptions`] with [`Display::options`].
 ///
 /// # Examples
@@ -45,22 +45,16 @@ impl<T: ByteSize> BSize<T> {
 /// Display with the [`DisplayOptions::BINARY`] and [`DisplayOptions::DECIMAL`] presets.
 ///
 /// ```
-/// use bsize::BSize;
+/// use bsize::BSize64;
 ///
 /// assert_eq!(
 ///     "41.0 KiB",
-///     BSize::<u64>::kb(42).display().to_string(), // default to binary
+///     BSize64::kb(42).display().to_string(), // default to binary
 /// );
 ///
-/// assert_eq!(
-///     "1.0 MiB",
-///     BSize::<u64>::mib(1).display().binary().to_string(),
-/// );
+/// assert_eq!("1.0 MiB", BSize64::mib(1).display().binary().to_string(),);
 ///
-/// assert_eq!(
-///     "42.0 kB",
-///     BSize::<u64>::kb(42).display().decimal().to_string(),
-/// );
+/// assert_eq!("42.0 kB", BSize64::kb(42).display().decimal().to_string(),);
 /// ```
 ///
 /// The free [`display`] function accepts any supported integer byte size.
@@ -81,12 +75,9 @@ impl<T: ByteSize> BSize<T> {
 /// Use standard formatter precision to control the number of fractional digits.
 ///
 /// ```
-/// use bsize::BSize;
+/// use bsize::BSize64;
 ///
-/// assert_eq!(
-///     "1.54 KiB",
-///     format!("{:.2}", BSize::<u64>::b(1575).display())
-/// );
+/// assert_eq!("1.54 KiB", format!("{:.2}", BSize64::b(1575).display()));
 /// assert_eq!("1.575 KiB", format!("{:.3}", bsize::display(1613u64)));
 /// ```
 ///
@@ -324,7 +315,7 @@ impl Display {
     /// Create a [`Display`] instance from a byte count.
     ///
     /// This constructor is useful when the byte count is already represented as an `f64`. For
-    /// supported integer byte counts, use [`display`] or [`BSize::display`].
+    /// supported integer byte counts, use [`display`] or [`ByteSize::display`].
     ///
     /// # Examples
     ///

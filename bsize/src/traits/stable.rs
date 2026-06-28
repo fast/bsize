@@ -16,14 +16,16 @@ use core::ops::Mul;
 
 use super::private;
 
-/// A marker trait for all supported byte size underlying types.
-pub trait ByteSize: private::Sealed + Clone + Copy + Sized {
-    /// Returns the byte size as an approximate `f64`.
+/// A sealed trait for integer types that can back [`ByteSize`](crate::ByteSize).
+///
+/// This trait is implemented only for the unsigned integer types supported by this crate.
+pub trait BaseByteSize: private::Sealed + Clone + Copy + Sized {
+    /// Returns this byte count as an approximate `f64`.
     fn to_f64(&self) -> f64;
 }
 
-/// A trait for byte size payload types that can represent kilobyte-scale units.
-pub trait KiloByteSize: ByteSize + Mul<Output = Self> {
+/// Provides kilobyte-scale unit constants for supported backing integer types.
+pub trait KiloByteSize: BaseByteSize + Mul<Output = Self> {
     /// Number of bytes in one kilobyte.
     const KB: Self;
 
@@ -31,7 +33,7 @@ pub trait KiloByteSize: ByteSize + Mul<Output = Self> {
     const KIB: Self;
 }
 
-/// A trait for byte size payload types that can represent megabyte-scale units.
+/// Provides megabyte-scale unit constants for supported backing integer types.
 pub trait MegaByteSize: KiloByteSize {
     /// Number of bytes in one megabyte.
     const MB: Self;
@@ -40,7 +42,7 @@ pub trait MegaByteSize: KiloByteSize {
     const MIB: Self;
 }
 
-/// A trait for byte size payload types that can represent gigabyte-scale units.
+/// Provides gigabyte-scale unit constants for supported backing integer types.
 pub trait GigaByteSize: MegaByteSize {
     /// Number of bytes in one gigabyte.
     const GB: Self;
@@ -49,7 +51,7 @@ pub trait GigaByteSize: MegaByteSize {
     const GIB: Self;
 }
 
-/// A trait for byte size payload types that can represent terabyte-scale units.
+/// Provides terabyte-scale unit constants for supported backing integer types.
 pub trait TeraByteSize: GigaByteSize {
     /// Number of bytes in one terabyte.
     const TB: Self;
@@ -58,7 +60,7 @@ pub trait TeraByteSize: GigaByteSize {
     const TIB: Self;
 }
 
-/// A trait for byte size payload types that can represent petabyte-scale units.
+/// Provides petabyte-scale unit constants for supported backing integer types.
 pub trait PetaByteSize: TeraByteSize {
     /// Number of bytes in one petabyte.
     const PB: Self;
@@ -67,7 +69,7 @@ pub trait PetaByteSize: TeraByteSize {
     const PIB: Self;
 }
 
-/// A trait for byte size payload types that can represent exabyte-scale units.
+/// Provides exabyte-scale unit constants for supported backing integer types.
 pub trait ExaByteSize: PetaByteSize {
     /// Number of bytes in one exabyte.
     const EB: Self;
@@ -77,7 +79,7 @@ pub trait ExaByteSize: PetaByteSize {
 }
 
 macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
-    impl ByteSize for Ty {
+    impl BaseByteSize for Ty {
         fn to_f64(&self) -> f64 {
             *self as f64
         }

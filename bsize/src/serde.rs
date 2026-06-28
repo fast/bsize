@@ -16,12 +16,12 @@ use core::fmt;
 
 use serde_core::de;
 
-use crate::BSize;
+use crate::ByteSize;
 
 macro_rules! impl_serialize {
     ($($ty:ty),* $(,)?) => {
         $(
-            impl serde_core::Serialize for BSize<$ty> {
+            impl serde_core::Serialize for ByteSize<$ty> {
                 fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
                 where
                     S: serde_core::Serializer,
@@ -42,7 +42,7 @@ impl_serialize!(u8, u16, u32, u64, usize);
 macro_rules! impl_deserialize {
     ($($ty:ty => $deserialize:ident),* $(,)?) => {
         $(
-            impl<'de> serde_core::Deserialize<'de> for BSize<$ty> {
+            impl<'de> serde_core::Deserialize<'de> for ByteSize<$ty> {
                 fn deserialize<D>(de: D) -> Result<Self, D::Error>
                 where
                     D: serde_core::Deserializer<'de>,
@@ -50,7 +50,7 @@ macro_rules! impl_deserialize {
                     struct Visitor;
 
                     impl de::Visitor<'_> for Visitor {
-                        type Value = BSize<$ty>;
+                        type Value = ByteSize<$ty>;
 
                         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                             formatter.write_str("an integer or string")
@@ -59,7 +59,7 @@ macro_rules! impl_deserialize {
                         fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
                             if let Ok(val) = u64::try_from(value) {
                                 if val <= <$ty>::MAX as u64 {
-                                    Ok(BSize(val as $ty))
+                                    Ok(ByteSize(val as $ty))
                                 } else {
                                     Err(E::invalid_value(
                                         de::Unexpected::Signed(value),
@@ -76,7 +76,7 @@ macro_rules! impl_deserialize {
 
                         fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
                             if value <= <$ty>::MAX as u64 {
-                                Ok(BSize(value as $ty))
+                                Ok(ByteSize(value as $ty))
                             } else {
                                 Err(E::invalid_value(
                                     de::Unexpected::Unsigned(value),
@@ -129,35 +129,35 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
 
-    use super::*;
+    use crate::BSize;
 
     #[test]
     fn test_serde() {
         #[derive(Serialize, Deserialize)]
         struct S {
-            x: BSize<usize>,
+            x: BSize,
         }
 
         let s = serde_json::from_str::<S>(r#"{ "x": "5 B" }"#).unwrap();
-        assert_eq!(s.x, BSize::<usize>(5));
+        assert_eq!(s.x, BSize::b(5));
 
         let s = serde_json::from_str::<S>(r#"{ "x": 1048576 }"#).unwrap();
-        assert_eq!(s.x, "1 MiB".parse::<BSize<usize>>().unwrap());
+        assert_eq!(s.x, "1 MiB".parse::<BSize>().unwrap());
 
         let s = toml::from_str::<S>(r#"x = "2.5 MiB""#).unwrap();
-        assert_eq!(s.x, "2.5 MiB".parse::<BSize<usize>>().unwrap());
+        assert_eq!(s.x, "2.5 MiB".parse::<BSize>().unwrap());
 
         // i64 MAX
         let s = toml::from_str::<S>(r#"x = "9223372036854775807""#).unwrap();
-        assert_eq!(s.x, "9223372036854775807".parse::<BSize<usize>>().unwrap());
+        assert_eq!(s.x, "9223372036854775807".parse::<BSize>().unwrap());
     }
 
     #[test]
     fn test_serde_json() {
-        let json = serde_json::to_string(&BSize::<usize>::mib(1)).unwrap();
+        let json = serde_json::to_string(&BSize::mib(1)).unwrap();
         assert_eq!(json, "\"1048576 B\"");
 
-        let deserialized = serde_json::from_str::<BSize<usize>>(&json).unwrap();
+        let deserialized = serde_json::from_str::<BSize>(&json).unwrap();
         assert_eq!(deserialized.0, 1048576);
     }
 }

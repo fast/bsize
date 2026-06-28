@@ -20,36 +20,40 @@ mod stable;
 #[cfg(test)]
 mod tests {
     use crate::BSize;
+    use crate::BSize8;
+    use crate::BSize16;
+    use crate::BSize32;
+    use crate::BSize64;
 
     #[test]
     fn adds_byte_sizes() {
-        assert_eq!((BSize::<u8>(3) + BSize(5)).0, 8);
-        assert_eq!((BSize::<u16>(3) + BSize(5)).0, 8);
-        assert_eq!((BSize::<u32>(3) + BSize(5)).0, 8);
-        assert_eq!((BSize::<u64>(3) + BSize(5)).0, 8);
-        assert_eq!((BSize::<usize>(3) + BSize(5)).0, 8);
+        assert_eq!((BSize8::b(3) + BSize8::b(5)).0, 8);
+        assert_eq!((BSize16::b(3) + BSize16::b(5)).0, 8);
+        assert_eq!((BSize32::b(3) + BSize32::b(5)).0, 8);
+        assert_eq!((BSize64::b(3) + BSize64::b(5)).0, 8);
+        assert_eq!((BSize::b(3) + BSize::b(5)).0, 8);
     }
 
     #[test]
     fn add_assigns_byte_sizes() {
-        let mut size = BSize::<usize>(3);
-        size += BSize(5);
+        let mut size = BSize::b(3);
+        size += BSize::b(5);
         assert_eq!(size.0, 8);
     }
 
     #[test]
     fn subtracts_byte_sizes() {
-        assert_eq!((BSize::<u8>(8) - BSize(5)).0, 3);
-        assert_eq!((BSize::<u16>(8) - BSize(5)).0, 3);
-        assert_eq!((BSize::<u32>(8) - BSize(5)).0, 3);
-        assert_eq!((BSize::<u64>(8) - BSize(5)).0, 3);
-        assert_eq!((BSize::<usize>(8) - BSize(5)).0, 3);
+        assert_eq!((BSize8::b(8) - BSize8::b(5)).0, 3);
+        assert_eq!((BSize16::b(8) - BSize16::b(5)).0, 3);
+        assert_eq!((BSize32::b(8) - BSize32::b(5)).0, 3);
+        assert_eq!((BSize64::b(8) - BSize64::b(5)).0, 3);
+        assert_eq!((BSize::b(8) - BSize::b(5)).0, 3);
     }
 
     #[test]
     fn sub_assigns_byte_sizes() {
-        let mut size = BSize::<usize>(8);
-        size -= BSize(5);
+        let mut size = BSize::b(8);
+        size -= BSize::b(5);
         assert_eq!(size.0, 3);
     }
 }

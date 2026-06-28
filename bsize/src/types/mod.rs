@@ -15,44 +15,54 @@
 use core::any::type_name;
 use core::fmt;
 
-use crate::traits::ByteSize;
+use crate::traits::BaseByteSize;
 
 /// Byte size representation.
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BSize<T: ByteSize>(pub T);
+pub struct ByteSize<T: BaseByteSize>(pub T);
 
-impl<T: ByteSize + fmt::Debug> fmt::Debug for BSize<T> {
+/// Byte size representation backed by `usize`.
+pub type BSize = ByteSize<usize>;
+
+/// Byte size representation backed by `u8`.
+pub type BSize8 = ByteSize<u8>;
+
+/// Byte size representation backed by `u16`.
+pub type BSize16 = ByteSize<u16>;
+
+/// Byte size representation backed by `u32`.
+pub type BSize32 = ByteSize<u32>;
+
+/// Byte size representation backed by `u64`.
+pub type BSize64 = ByteSize<u64>;
+
+impl<T: BaseByteSize + fmt::Debug> fmt::Debug for ByteSize<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "BSize<{}>({:?})", type_name::<T>(), self.0)
+        write!(f, "ByteSize<{}>({:?})", type_name::<T>(), self.0)
     }
 }
 
-impl<T: ByteSize + fmt::Display> fmt::Display for BSize<T> {
+impl<T: BaseByteSize + fmt::Display> fmt::Display for ByteSize<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Stick to a base scale, so that users would not be surprised by:
         //
-        //   println!("{}", BSize::<usize>::kb(42))
+        //   println!("{}", BSize::kb(42))
         //
         // returns "41.0 KiB" rather than "42.0 KB".
         write!(f, "{} B", self.0)
     }
 }
 
-impl<T: ByteSize> BSize<T> {
+impl<T: BaseByteSize> ByteSize<T> {
     /// Calculate a new byte size with the provided function, returning a new struct.
     pub fn map(self, f: impl FnOnce(T) -> T) -> Self {
-        BSize(f(self.0))
-    }
-
-    /// Calculate a new value with the provided function.
-    pub fn with<R>(self, f: impl FnOnce(T) -> R) -> R {
-        f(self.0)
+        ByteSize(f(self.0))
     }
 
     /// Constructs a byte size wrapper from a quantity of bytes.
     #[inline(always)]
     pub const fn b(size: T) -> Self {
-        BSize(size)
+        ByteSize(size)
     }
 }
 
@@ -64,54 +74,67 @@ mod stable;
 #[cfg(test)]
 mod tests {
     use super::BSize;
+    use super::BSize8;
+    use super::BSize16;
+    use super::BSize32;
+    use super::BSize64;
+    use super::ByteSize;
     use crate::assert_close;
 
     #[test]
     fn defaults() {
-        assert_eq!(BSize::<u8>::default(), BSize::b(0));
-        assert_eq!(BSize::<u16>::default(), BSize::b(0));
-        assert_eq!(BSize::<u32>::default(), BSize::b(0));
-        assert_eq!(BSize::<u64>::default(), BSize::b(0));
-        assert_eq!(BSize::<usize>::default(), BSize::b(0));
+        assert_eq!(BSize8::default(), BSize8::b(0));
+        assert_eq!(BSize16::default(), BSize16::b(0));
+        assert_eq!(BSize32::default(), BSize32::b(0));
+        assert_eq!(BSize64::default(), BSize64::b(0));
+        assert_eq!(BSize::default(), BSize::b(0));
+    }
+
+    #[test]
+    fn bsize_alias_is_usize() {
+        let default: BSize = BSize::b(2);
+        let explicit: ByteSize<usize> = ByteSize::b(2);
+
+        assert_eq!(default, explicit);
+    }
+
+    #[test]
+    fn aliases_use_expected_underlying_types() {
+        assert_eq!(BSize8::b(2), ByteSize::<u8>::b(2));
+        assert_eq!(BSize16::kib(2), ByteSize::<u16>::kib(2));
+        assert_eq!(BSize32::gib(2), ByteSize::<u32>::gib(2));
+        assert_eq!(BSize64::eib(2), ByteSize::<u64>::eib(2));
     }
 
     #[test]
     fn constructs_u8_units() {
-        assert_eq!(BSize::<u8>::b(2).0, 2);
+        assert_eq!(BSize8::b(2).0, 2);
     }
 
     #[test]
     fn returns_byte_units() {
-        assert_close(BSize::<u8>::b(2).as_b(), 2.0);
-        assert_close(BSize::<u16>::b(2).as_b(), 2.0);
-        assert_close(BSize::<u32>::b(2).as_b(), 2.0);
-        assert_close(BSize::<u64>::b(2).as_b(), 2.0);
-        assert_close(BSize::<usize>::b(2).as_b(), 2.0);
+        assert_close(BSize8::b(2).as_b(), 2.0);
+        assert_close(BSize16::b(2).as_b(), 2.0);
+        assert_close(BSize32::b(2).as_b(), 2.0);
+        assert_close(BSize64::b(2).as_b(), 2.0);
+        assert_close(BSize::b(2).as_b(), 2.0);
     }
 
     #[test]
     fn maps_underlying_byte_count() {
-        assert_eq!(
-            BSize::<u64>::kib(4).map(|bytes| bytes + 64),
-            BSize::b(4_160),
-        );
-    }
-
-    #[test]
-    fn with_returns_closure_result() {
-        assert!(BSize::<u64>::kib(4).with(|bytes| bytes == 4_096));
+        assert_eq!(BSize64::kib(4).map(|bytes| bytes + 64), BSize64::b(4_160),);
     }
 
     #[test]
     fn constructs_u16_units() {
-        assert_eq!(BSize::<u16>::kb(2).0, 2_000);
-        assert_eq!(BSize::<u16>::kib(2).0, 2_048);
+        assert_eq!(BSize16::kb(2).0, 2_000);
+        assert_eq!(BSize16::kib(2).0, 2_048);
     }
 
     #[test]
     fn returns_u16_units() {
-        assert_close(BSize::<u16>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<u16>::kib(2).as_kib(), 2.0);
+        assert_close(BSize16::kb(2).as_kb(), 2.0);
+        assert_close(BSize16::kib(2).as_kib(), 2.0);
     }
 
     #[test]
@@ -120,23 +143,20 @@ mod tests {
         let kb = 1_000u16;
         let kib = 1_024u16;
 
-        assert_close(BSize::<u16>::b(bytes).as_kb(), (bytes as f64) / (kb as f64));
-        assert_close(
-            BSize::<u16>::b(bytes).as_kib(),
-            (bytes as f64) / (kib as f64),
-        );
+        assert_close(BSize16::b(bytes).as_kb(), (bytes as f64) / (kb as f64));
+        assert_close(BSize16::b(bytes).as_kib(), (bytes as f64) / (kib as f64));
     }
 
     #[test]
     fn constructs_u32_units() {
-        assert_eq!(BSize::<u32>::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::<u32>::gib(2).0, 2_147_483_648);
+        assert_eq!(BSize32::gb(2).0, 2_000_000_000);
+        assert_eq!(BSize32::gib(2).0, 2_147_483_648);
     }
 
     #[test]
     fn returns_u32_units() {
-        assert_close(BSize::<u32>::gb(2).as_gb(), 2.0);
-        assert_close(BSize::<u32>::gib(2).as_gib(), 2.0);
+        assert_close(BSize32::gb(2).as_gb(), 2.0);
+        assert_close(BSize32::gib(2).as_gib(), 2.0);
     }
 
     #[test]
@@ -145,61 +165,58 @@ mod tests {
         let gb = 1_000_000_000u32;
         let gib = 1_073_741_824u32;
 
-        assert_close(BSize::<u32>::b(bytes).as_gb(), (bytes as f64) / (gb as f64));
-        assert_close(
-            BSize::<u32>::b(bytes).as_gib(),
-            (bytes as f64) / (gib as f64),
-        );
+        assert_close(BSize32::b(bytes).as_gb(), (bytes as f64) / (gb as f64));
+        assert_close(BSize32::b(bytes).as_gib(), (bytes as f64) / (gib as f64));
     }
 
     #[test]
     fn constructs_u64_units() {
-        assert_eq!(BSize::<u64>::eb(2).0, 2_000_000_000_000_000_000);
-        assert_eq!(BSize::<u64>::eib(2).0, 2_305_843_009_213_693_952);
+        assert_eq!(BSize64::eb(2).0, 2_000_000_000_000_000_000);
+        assert_eq!(BSize64::eib(2).0, 2_305_843_009_213_693_952);
     }
 
     #[test]
     fn returns_u64_units() {
-        assert_close(BSize::<u64>::eib(2).as_eib(), 2.0);
+        assert_close(BSize64::eib(2).as_eib(), 2.0);
     }
 
     #[cfg(target_pointer_width = "16")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
+        assert_eq!(BSize::kb(2).0, 2_000);
+        assert_eq!(BSize::kib(2).0, 2_048);
+        assert_close(BSize::kb(2).as_kb(), 2.0);
+        assert_close(BSize::kib(2).as_kib(), 2.0);
     }
 
     #[cfg(target_pointer_width = "32")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
-        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
-        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
-        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
+        assert_eq!(BSize::kb(2).0, 2_000);
+        assert_eq!(BSize::kib(2).0, 2_048);
+        assert_close(BSize::kb(2).as_kb(), 2.0);
+        assert_close(BSize::kib(2).as_kib(), 2.0);
+        assert_eq!(BSize::gb(2).0, 2_000_000_000);
+        assert_eq!(BSize::gib(2).0, 2_147_483_648);
+        assert_close(BSize::gb(2).as_gb(), 2.0);
+        assert_close(BSize::gib(2).as_gib(), 2.0);
     }
 
     #[cfg(target_pointer_width = "64")]
     #[test]
     fn returns_usize_units() {
-        assert_eq!(BSize::<usize>::kb(2).0, 2_000);
-        assert_eq!(BSize::<usize>::kib(2).0, 2_048);
-        assert_close(BSize::<usize>::kb(2).as_kb(), 2.0);
-        assert_close(BSize::<usize>::kib(2).as_kib(), 2.0);
-        assert_eq!(BSize::<usize>::gb(2).0, 2_000_000_000);
-        assert_eq!(BSize::<usize>::gib(2).0, 2_147_483_648);
-        assert_close(BSize::<usize>::gb(2).as_gb(), 2.0);
-        assert_close(BSize::<usize>::gib(2).as_gib(), 2.0);
-        assert_eq!(BSize::<usize>::eb(2).0, 2_000_000_000_000_000_000);
-        assert_eq!(BSize::<usize>::eib(2).0, 2_305_843_009_213_693_952);
-        assert_close(BSize::<usize>::eb(2).as_eb(), 2.0);
-        assert_close(BSize::<usize>::eib(2).as_eib(), 2.0);
+        assert_eq!(BSize::kb(2).0, 2_000);
+        assert_eq!(BSize::kib(2).0, 2_048);
+        assert_close(BSize::kb(2).as_kb(), 2.0);
+        assert_close(BSize::kib(2).as_kib(), 2.0);
+        assert_eq!(BSize::gb(2).0, 2_000_000_000);
+        assert_eq!(BSize::gib(2).0, 2_147_483_648);
+        assert_close(BSize::gb(2).as_gb(), 2.0);
+        assert_close(BSize::gib(2).as_gib(), 2.0);
+        assert_eq!(BSize::eb(2).0, 2_000_000_000_000_000_000);
+        assert_eq!(BSize::eib(2).0, 2_305_843_009_213_693_952);
+        assert_close(BSize::eb(2).as_eb(), 2.0);
+        assert_close(BSize::eib(2).as_eib(), 2.0);
     }
 
     #[test]
@@ -208,10 +225,7 @@ mod tests {
         let eb = 1_000_000_000_000_000_000u64;
         let eib = 1_152_921_504_606_846_976u64;
 
-        assert_close(BSize::<u64>::b(bytes).as_eb(), (bytes as f64) / (eb as f64));
-        assert_close(
-            BSize::<u64>::b(bytes).as_eib(),
-            (bytes as f64) / (eib as f64),
-        );
+        assert_close(BSize64::b(bytes).as_eb(), (bytes as f64) / (eb as f64));
+        assert_close(BSize64::b(bytes).as_eib(), (bytes as f64) / (eib as f64));
     }
 }

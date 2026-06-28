@@ -21,15 +21,16 @@
 //! # Features
 //!
 //! * `#![no_std]`-capable, no heap allocation, and no runtime dependencies by default.
-//! * [`BSize`] wrappers over `u8`, `u16`, `u32`, `u64`, and `usize` for representing byte sizes
-//!   with different underlying types.
-//! * `FromStr` impl for `BSize`, allowing for parsing string size representations like "1.5 KiB"
+//! * Generic [`ByteSize`] wrappers over supported unsigned integer base types, with [`BSize`] as
+//!   the `usize` alias and [`BSize8`], [`BSize16`], [`BSize32`], and [`BSize64`] as shorter aliases
+//!   for fixed-width base types.
+//! * `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB"
 //!   and "521 TB".
-//! * [`Display`] impl for `BSize`, allowing for formatting byte sizes as human-readable strings in
-//!   both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
+//! * [`Display`] impl for `ByteSize`, allowing for formatting byte sizes as human-readable strings
+//!   in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
 //! * Optional `serde` support for binary and human-readable format.
 //! * Optional `nightly` support for generic const unit constructors, allowing calls like
-//!   `BSize::kib(16_u64)`.
+//!   `ByteSize::kib(16_u64)`.
 //!
 //! # Examples
 //!
@@ -38,17 +39,20 @@
 //! ```
 //! use bsize::BSize;
 //!
-//! assert!(BSize::<usize>::kib(4) > BSize::<usize>::kb(4));
+//! assert!(BSize::kib(4) > BSize::kb(4));
+//!
+//! let size: BSize = BSize::b(4_096);
+//! assert_eq!(size.0, 4_096);
 //! ```
 //!
 //! Parse byte sizes from strings.
 //!
 //! ```
-//! use bsize::BSize;
+//! use bsize::BSize64;
 //!
-//! let size: BSize<u64> = "1.5 MiB".parse().unwrap();
+//! let size: BSize64 = "1.5 MiB".parse().unwrap();
 //!
-//! assert_eq!(BSize::<u64>::mib(1).map(|bytes| bytes + 512 * 1024), size);
+//! assert_eq!(BSize64::mib(1).map(|bytes| bytes + 512 * 1024), size);
 //! ```
 //!
 //! Display as human-readable string.
@@ -59,15 +63,9 @@
 //! use bsize::DisplayOptions;
 //! use bsize::DisplayScale;
 //!
-//! assert_eq!(
-//!     "518.0 GiB",
-//!     BSize::<usize>::gib(518).display().binary().to_string()
-//! );
+//! assert_eq!("518.0 GiB", BSize::gib(518).display().binary().to_string());
 //!
-//! assert_eq!(
-//!     "556.2 GB",
-//!     BSize::<usize>::gib(518).display().decimal().to_string()
-//! );
+//! assert_eq!("556.2 GB", BSize::gib(518).display().decimal().to_string());
 //!
 //! let network_units = DisplayOptions::DECIMAL
 //!     .base_unit(DisplayBaseUnit::Bit)
@@ -81,11 +79,11 @@
 //! ```
 //! use bsize::BSize;
 //!
-//! let plus = BSize::<usize>::mb(1) + BSize::<usize>::kb(100);
+//! let plus = BSize::mb(1) + BSize::kb(100);
 //! println!("{plus}");
 //!
-//! let minus = BSize::<usize>::tb(1) - BSize::<usize>::gb(4);
-//! assert_eq!(BSize::<usize>::gb(996), minus);
+//! let minus = BSize::tb(1) - BSize::gb(4);
+//! assert_eq!(BSize::gb(996), minus);
 //! ```
 //!
 //! Arithmetic operations over the underlying types are supported.
@@ -93,7 +91,7 @@
 //!```
 //! use bsize::BSize;
 //!
-//! let size = BSize::<usize>::mb(1);
+//! let size = BSize::mb(1);
 //! let size = size.map(|b| b * 4); // 4x scale
 //! println!("{size}");
 //! ```
@@ -118,7 +116,7 @@ pub use self::display::DisplayScale;
 pub use self::display::DisplayUnitSystem;
 pub use self::display::display;
 pub use self::parse::ParseError;
-pub use self::traits::ByteSize;
+pub use self::traits::BaseByteSize;
 pub use self::traits::ExaByteSize;
 pub use self::traits::GigaByteSize;
 pub use self::traits::KiloByteSize;
@@ -126,6 +124,11 @@ pub use self::traits::MegaByteSize;
 pub use self::traits::PetaByteSize;
 pub use self::traits::TeraByteSize;
 pub use self::types::BSize;
+pub use self::types::BSize8;
+pub use self::types::BSize16;
+pub use self::types::BSize32;
+pub use self::types::BSize64;
+pub use self::types::ByteSize;
 
 #[cfg(test)]
 fn assert_close(actual: f64, expected: f64) {
@@ -145,7 +148,7 @@ mod property_tests {
 
     use super::*;
 
-    impl quickcheck::Arbitrary for BSize<u64> {
+    impl quickcheck::Arbitrary for ByteSize<u64> {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             Self(u64::arbitrary(g))
         }
@@ -153,16 +156,16 @@ mod property_tests {
 
     quickcheck::quickcheck! {
         fn parsing_never_panics(size: String) -> bool {
-            let _ = size.parse::<BSize<u64>>();
+            let _ = size.parse::<ByteSize<u64>>();
             true
         }
 
-        fn to_string_never_blank(size: BSize<u64>) -> bool {
+        fn to_string_never_blank(size: ByteSize<u64>) -> bool {
             !size.to_string().is_empty()
         }
 
-        fn string_round_trip(size: BSize<u64>) -> bool {
-            size.to_string().parse::<BSize<u64>>().unwrap() == size
+        fn string_round_trip(size: ByteSize<u64>) -> bool {
+            size.to_string().parse::<ByteSize<u64>>().unwrap() == size
         }
     }
 }
