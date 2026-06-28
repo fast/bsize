@@ -45,7 +45,7 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
     impl ops::SubAssign<ByteSize<Ty>> for ByteSize<Ty> {
         #[inline(always)]
         fn sub_assign(&mut self, rhs: ByteSize<Ty>) {
-             self.0 -= rhs.0;
+            self.0 -= rhs.0;
         }
     }
 });
