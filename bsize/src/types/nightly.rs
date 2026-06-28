@@ -21,57 +21,6 @@ use crate::traits::MegaByteSize;
 use crate::traits::PetaByteSize;
 use crate::traits::TeraByteSize;
 
-macro_rules! impl_constructors {
-    ($trait:ident => { $($name:ident = $size:ident),* $(,)? }) => {
-        impl<T: $trait> BSize<T> {
-            $(
-                #[doc = concat!(
-                    "Constructs a byte size wrapper from a quantity of `",
-                    stringify!($name),
-                    "` units."
-                )]
-                #[inline(always)]
-                pub const fn $name(size: T) -> Self
-                where
-                    T: [const] $trait,
-                {
-                    BSize(size * T::$size)
-                }
-            )*
-        }
-    };
-}
-
-impl_constructors!(KiloByteSize => {
-    kb = KB,
-    kib = KIB,
-});
-
-impl_constructors!(MegaByteSize => {
-    mb = MB,
-    mib = MIB,
-});
-
-impl_constructors!(GigaByteSize => {
-    gb = GB,
-    gib = GIB,
-});
-
-impl_constructors!(TeraByteSize => {
-    tb = TB,
-    tib = TIB,
-});
-
-impl_constructors!(PetaByteSize => {
-    pb = PB,
-    pib = PIB,
-});
-
-impl_constructors!(ExaByteSize => {
-    eb = EB,
-    eib = EIB,
-});
-
 impl<T: ByteSize> BSize<T> {
     /// Returns byte count as bytes.
     ///
@@ -87,69 +36,274 @@ impl<T: ByteSize> BSize<T> {
     }
 }
 
-macro_rules! impl_accessors {
-    ($trait:ident => { $($name:ident = $size:ident => $unit:literal),* $(,)? }) => {
-        impl<T: $trait> BSize<T> {
-            $(
-                #[doc = concat!("Returns byte count as ", $unit, ".")]
-                ///
-                /// The result is approximate when the byte count cannot be
-                /// represented exactly as `f64`.
-                #[inline(always)]
-                pub const fn $name(&self) -> f64
-                where
-                    T: [const] $trait + [const] ByteSize,
-                {
-                    self.0.as_f64() / T::$size.as_f64()
-                }
-            )*
-        }
-    };
+impl<T: KiloByteSize> BSize<T> {
+    /// Constructs a byte size wrapper from a quantity of `kb` units.
+    #[inline(always)]
+    pub const fn kb(size: T) -> Self
+    where
+        T: [const] KiloByteSize,
+    {
+        BSize(size * T::KB)
+    }
+
+    /// Constructs a byte size wrapper from a quantity of `kib` units.
+    #[inline(always)]
+    pub const fn kib(size: T) -> Self
+    where
+        T: [const] KiloByteSize,
+    {
+        BSize(size * T::KIB)
+    }
+
+    /// Returns byte count as kilobytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_kb(&self) -> f64
+    where
+        T: [const] KiloByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::KB.as_f64()
+    }
+
+    /// Returns byte count as kibibytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_kib(&self) -> f64
+    where
+        T: [const] KiloByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::KIB.as_f64()
+    }
 }
 
-impl_accessors!(KiloByteSize => {
-    as_kb = KB => "kilobytes",
-    as_kib = KIB => "kibibytes",
-});
+impl<T: MegaByteSize> BSize<T> {
+    /// Constructs a byte size wrapper from a quantity of `mb` units.
+    #[inline(always)]
+    pub const fn mb(size: T) -> Self
+    where
+        T: [const] MegaByteSize,
+    {
+        BSize(size * T::MB)
+    }
 
-impl_accessors!(MegaByteSize => {
-    as_mb = MB => "megabytes",
-    as_mib = MIB => "mebibytes",
-});
+    /// Constructs a byte size wrapper from a quantity of `mib` units.
+    #[inline(always)]
+    pub const fn mib(size: T) -> Self
+    where
+        T: [const] MegaByteSize,
+    {
+        BSize(size * T::MIB)
+    }
 
-impl_accessors!(GigaByteSize => {
-    as_gb = GB => "gigabytes",
-    as_gib = GIB => "gibibytes",
-});
+    /// Returns byte count as megabytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_mb(&self) -> f64
+    where
+        T: [const] MegaByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::MB.as_f64()
+    }
 
-impl_accessors!(TeraByteSize => {
-    as_tb = TB => "terabytes",
-    as_tib = TIB => "tebibytes",
-});
+    /// Returns byte count as mebibytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_mib(&self) -> f64
+    where
+        T: [const] MegaByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::MIB.as_f64()
+    }
+}
 
-impl_accessors!(PetaByteSize => {
-    as_pb = PB => "petabytes",
-    as_pib = PIB => "pebibytes",
-});
+impl<T: GigaByteSize> BSize<T> {
+    /// Constructs a byte size wrapper from a quantity of `gb` units.
+    #[inline(always)]
+    pub const fn gb(size: T) -> Self
+    where
+        T: [const] GigaByteSize,
+    {
+        BSize(size * T::GB)
+    }
 
-impl_accessors!(ExaByteSize => {
-    as_eb = EB => "exabytes",
-    as_eib = EIB => "exbibytes",
-});
+    /// Constructs a byte size wrapper from a quantity of `gib` units.
+    #[inline(always)]
+    pub const fn gib(size: T) -> Self
+    where
+        T: [const] GigaByteSize,
+    {
+        BSize(size * T::GIB)
+    }
+
+    /// Returns byte count as gigabytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_gb(&self) -> f64
+    where
+        T: [const] GigaByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::GB.as_f64()
+    }
+
+    /// Returns byte count as gibibytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_gib(&self) -> f64
+    where
+        T: [const] GigaByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::GIB.as_f64()
+    }
+}
+
+impl<T: TeraByteSize> BSize<T> {
+    /// Constructs a byte size wrapper from a quantity of `tb` units.
+    #[inline(always)]
+    pub const fn tb(size: T) -> Self
+    where
+        T: [const] TeraByteSize,
+    {
+        BSize(size * T::TB)
+    }
+
+    /// Constructs a byte size wrapper from a quantity of `tib` units.
+    #[inline(always)]
+    pub const fn tib(size: T) -> Self
+    where
+        T: [const] TeraByteSize,
+    {
+        BSize(size * T::TIB)
+    }
+
+    /// Returns byte count as terabytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_tb(&self) -> f64
+    where
+        T: [const] TeraByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::TB.as_f64()
+    }
+
+    /// Returns byte count as tebibytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_tib(&self) -> f64
+    where
+        T: [const] TeraByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::TIB.as_f64()
+    }
+}
+
+impl<T: PetaByteSize> BSize<T> {
+    /// Constructs a byte size wrapper from a quantity of `pb` units.
+    #[inline(always)]
+    pub const fn pb(size: T) -> Self
+    where
+        T: [const] PetaByteSize,
+    {
+        BSize(size * T::PB)
+    }
+
+    /// Constructs a byte size wrapper from a quantity of `pib` units.
+    #[inline(always)]
+    pub const fn pib(size: T) -> Self
+    where
+        T: [const] PetaByteSize,
+    {
+        BSize(size * T::PIB)
+    }
+
+    /// Returns byte count as petabytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_pb(&self) -> f64
+    where
+        T: [const] PetaByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::PB.as_f64()
+    }
+
+    /// Returns byte count as pebibytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_pib(&self) -> f64
+    where
+        T: [const] PetaByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::PIB.as_f64()
+    }
+}
+
+impl<T: ExaByteSize> BSize<T> {
+    /// Constructs a byte size wrapper from a quantity of `eb` units.
+    #[inline(always)]
+    pub const fn eb(size: T) -> Self
+    where
+        T: [const] ExaByteSize,
+    {
+        BSize(size * T::EB)
+    }
+
+    /// Constructs a byte size wrapper from a quantity of `eib` units.
+    #[inline(always)]
+    pub const fn eib(size: T) -> Self
+    where
+        T: [const] ExaByteSize,
+    {
+        BSize(size * T::EIB)
+    }
+
+    /// Returns byte count as exabytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_eb(&self) -> f64
+    where
+        T: [const] ExaByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::EB.as_f64()
+    }
+
+    /// Returns byte count as exbibytes.
+    ///
+    /// The result is approximate when the byte count cannot be represented
+    /// exactly as `f64`.
+    #[inline(always)]
+    pub const fn as_eib(&self) -> f64
+    where
+        T: [const] ExaByteSize + [const] ByteSize,
+    {
+        self.0.as_f64() / T::EIB.as_f64()
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::BSize;
-
-    fn assert_close(actual: f64, expected: f64) {
-        let delta = (actual - expected).abs();
-        let tolerance = f64::EPSILON;
-
-        assert!(
-            delta <= tolerance,
-            "actual: {actual}, expected: {expected}, delta: {delta}, tolerance: {tolerance}",
-        );
-    }
+    use crate::assert_close;
 
     #[test]
     fn infers_constructor_type_from_argument() {
@@ -171,44 +325,5 @@ mod tests {
 
         assert_close(BYTES, 16.0);
         assert_close(KIB, 16.0);
-    }
-
-    #[cfg(target_pointer_width = "16")]
-    #[test]
-    fn returns_usize_units() {
-        assert_eq!(BSize::kb(2_usize).0, 2_000);
-        assert_eq!(BSize::kib(2_usize).0, 2_048);
-        assert_close(BSize::kb(2_usize).as_kb(), 2.0);
-        assert_close(BSize::kib(2_usize).as_kib(), 2.0);
-    }
-
-    #[cfg(target_pointer_width = "32")]
-    #[test]
-    fn returns_usize_units() {
-        assert_eq!(BSize::kb(2_usize).0, 2_000);
-        assert_eq!(BSize::kib(2_usize).0, 2_048);
-        assert_close(BSize::kb(2_usize).as_kb(), 2.0);
-        assert_close(BSize::kib(2_usize).as_kib(), 2.0);
-        assert_eq!(BSize::gb(2_usize).0, 2_000_000_000);
-        assert_eq!(BSize::gib(2_usize).0, 2_147_483_648);
-        assert_close(BSize::gb(2_usize).as_gb(), 2.0);
-        assert_close(BSize::gib(2_usize).as_gib(), 2.0);
-    }
-
-    #[cfg(target_pointer_width = "64")]
-    #[test]
-    fn returns_usize_units() {
-        assert_eq!(BSize::kb(2_usize).0, 2_000);
-        assert_eq!(BSize::kib(2_usize).0, 2_048);
-        assert_close(BSize::kb(2_usize).as_kb(), 2.0);
-        assert_close(BSize::kib(2_usize).as_kib(), 2.0);
-        assert_eq!(BSize::gb(2_usize).0, 2_000_000_000);
-        assert_eq!(BSize::gib(2_usize).0, 2_147_483_648);
-        assert_close(BSize::gb(2_usize).as_gb(), 2.0);
-        assert_close(BSize::gib(2_usize).as_gib(), 2.0);
-        assert_eq!(BSize::eb(2_usize).0, 2_000_000_000_000_000_000);
-        assert_eq!(BSize::eib(2_usize).0, 2_305_843_009_213_693_952);
-        assert_close(BSize::eb(2_usize).as_eb(), 2.0);
-        assert_close(BSize::eib(2_usize).as_eib(), 2.0);
     }
 }

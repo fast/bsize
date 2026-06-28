@@ -128,6 +128,17 @@ pub use self::traits::TeraByteSize;
 pub use self::types::BSize;
 
 #[cfg(test)]
+fn assert_close(actual: f64, expected: f64) {
+    let delta = (actual - expected).abs();
+    let tolerance = f64::EPSILON;
+
+    assert!(
+        delta <= tolerance,
+        "actual: {actual}, expected: {expected}, delta: {delta}, tolerance: {tolerance}",
+    );
+}
+
+#[cfg(test)]
 mod property_tests {
     use alloc::string::String;
     use alloc::string::ToString;
