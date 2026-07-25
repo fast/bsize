@@ -86,39 +86,31 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
     }
 });
 
-macroweave::repeat!((Trait, Ty, DecimalName, BinaryName, Scale) in [
-    (KiloByteSize, u16, KB, KIB, 1),
-    (KiloByteSize, u32, KB, KIB, 1),
-    (MegaByteSize, u32, MB, MIB, 2),
-    (GigaByteSize, u32, GB, GIB, 3),
-    (KiloByteSize, u64, KB, KIB, 1),
-    (MegaByteSize, u64, MB, MIB, 2),
-    (GigaByteSize, u64, GB, GIB, 3),
-    (TeraByteSize, u64, TB, TIB, 4),
-    (PetaByteSize, u64, PB, PIB, 5),
-    (ExaByteSize, u64, EB, EIB, 6),
+macroweave::repeat!((Cfg, Trait, Ty, DecimalName, BinaryName, Scale) in [
+    (all(), KiloByteSize, u16, KB, KIB, 1),
+    (all(), KiloByteSize, u32, KB, KIB, 1),
+    (all(), MegaByteSize, u32, MB, MIB, 2),
+    (all(), GigaByteSize, u32, GB, GIB, 3),
+    (all(), KiloByteSize, u64, KB, KIB, 1),
+    (all(), MegaByteSize, u64, MB, MIB, 2),
+    (all(), GigaByteSize, u64, GB, GIB, 3),
+    (all(), TeraByteSize, u64, TB, TIB, 4),
+    (all(), PetaByteSize, u64, PB, PIB, 5),
+    (all(), ExaByteSize, u64, EB, EIB, 6),
+    (target_pointer_width = "16", KiloByteSize, usize, KB, KIB, 1),
+    (target_pointer_width = "32", KiloByteSize, usize, KB, KIB, 1),
+    (target_pointer_width = "32", MegaByteSize, usize, MB, MIB, 2),
+    (target_pointer_width = "32", GigaByteSize, usize, GB, GIB, 3),
+    (target_pointer_width = "64", KiloByteSize, usize, KB, KIB, 1),
+    (target_pointer_width = "64", MegaByteSize, usize, MB, MIB, 2),
+    (target_pointer_width = "64", GigaByteSize, usize, GB, GIB, 3),
+    (target_pointer_width = "64", TeraByteSize, usize, TB, TIB, 4),
+    (target_pointer_width = "64", PetaByteSize, usize, PB, PIB, 5),
+    (target_pointer_width = "64", ExaByteSize, usize, EB, EIB, 6),
 ] {
+    #[cfg(Cfg)]
     impl Trait for Ty {
         const DecimalName: Self = Ty::pow(1000, Scale);
         const BinaryName: Self = Ty::pow(1024, Scale);
-    }
-});
-
-macroweave::repeat!((PointerWidth, Trait, DecimalName, BinaryName, Scale) in [
-    ("16", KiloByteSize, KB, KIB, 1),
-    ("32", KiloByteSize, KB, KIB, 1),
-    ("32", MegaByteSize, MB, MIB, 2),
-    ("32", GigaByteSize, GB, GIB, 3),
-    ("64", KiloByteSize, KB, KIB, 1),
-    ("64", MegaByteSize, MB, MIB, 2),
-    ("64", GigaByteSize, GB, GIB, 3),
-    ("64", TeraByteSize, TB, TIB, 4),
-    ("64", PetaByteSize, PB, PIB, 5),
-    ("64", ExaByteSize, EB, EIB, 6),
-] {
-    #[cfg(target_pointer_width = PointerWidth)]
-    impl Trait for usize {
-        const DecimalName: Self = usize::pow(1000, Scale);
-        const BinaryName: Self = usize::pow(1024, Scale);
     }
 });
