@@ -31,6 +31,7 @@ struct Command {
 impl Command {
     fn run(self) {
         match self.sub {
+            SubCommand::Bench(cmd) => cmd.run(),
             SubCommand::Lint(cmd) => cmd.run(),
             SubCommand::Test(cmd) => cmd.run(),
         }
@@ -39,10 +40,24 @@ impl Command {
 
 #[derive(Subcommand)]
 enum SubCommand {
+    #[clap(about = "Run workspace benchmarks.")]
+    Bench(CommandBench),
     #[clap(about = "Run workspace quality checks.")]
     Lint(CommandLint),
     #[clap(about = "Run workspace unit tests.")]
     Test(CommandTest),
+}
+
+#[derive(Parser)]
+struct CommandBench {
+    #[arg(long, help = "Run each benchmark once to verify the benchmark target.")]
+    test: bool,
+}
+
+impl CommandBench {
+    fn run(self) {
+        run_command(make_bench_cmd(self.test));
+    }
 }
 
 #[derive(Parser)]
@@ -117,6 +132,15 @@ fn make_test_cmd(no_capture: bool, features: &[&str]) -> StdCommand {
     }
     if no_capture {
         cmd.args(["--", "--nocapture"]);
+    }
+    cmd
+}
+
+fn make_bench_cmd(test: bool) -> StdCommand {
+    let mut cmd = find_command("cargo");
+    cmd.args(["bench", "--package", "bsize", "--bench", "parse"]);
+    if test {
+        cmd.args(["--", "--test"]);
     }
     cmd
 }
