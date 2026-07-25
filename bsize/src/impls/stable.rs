@@ -22,28 +22,49 @@ impl<T: BaseByteSize> ByteSize<T> {
     }
 }
 
-macroweave::repeat!((Ty, Name, Trait, Size) in [
-    (u16, kb, KiloByteSize, KB),
-    (u16, kib, KiloByteSize, KIB),
-    (u32, kb, KiloByteSize, KB),
-    (u32, kib, KiloByteSize, KIB),
-    (u32, mb, MegaByteSize, MB),
-    (u32, mib, MegaByteSize, MIB),
-    (u32, gb, GigaByteSize, GB),
-    (u32, gib, GigaByteSize, GIB),
-    (u64, kb, KiloByteSize, KB),
-    (u64, kib, KiloByteSize, KIB),
-    (u64, mb, MegaByteSize, MB),
-    (u64, mib, MegaByteSize, MIB),
-    (u64, gb, GigaByteSize, GB),
-    (u64, gib, GigaByteSize, GIB),
-    (u64, tb, TeraByteSize, TB),
-    (u64, tib, TeraByteSize, TIB),
-    (u64, pb, PetaByteSize, PB),
-    (u64, pib, PetaByteSize, PIB),
-    (u64, eb, ExaByteSize, EB),
-    (u64, eib, ExaByteSize, EIB),
+macroweave::repeat!((Cfg, Ty, Name, Trait, Size) in [
+    (all(), u16, kb, KiloByteSize, KB),
+    (all(), u16, kib, KiloByteSize, KIB),
+    (all(), u32, kb, KiloByteSize, KB),
+    (all(), u32, kib, KiloByteSize, KIB),
+    (all(), u32, mb, MegaByteSize, MB),
+    (all(), u32, mib, MegaByteSize, MIB),
+    (all(), u32, gb, GigaByteSize, GB),
+    (all(), u32, gib, GigaByteSize, GIB),
+    (all(), u64, kb, KiloByteSize, KB),
+    (all(), u64, kib, KiloByteSize, KIB),
+    (all(), u64, mb, MegaByteSize, MB),
+    (all(), u64, mib, MegaByteSize, MIB),
+    (all(), u64, gb, GigaByteSize, GB),
+    (all(), u64, gib, GigaByteSize, GIB),
+    (all(), u64, tb, TeraByteSize, TB),
+    (all(), u64, tib, TeraByteSize, TIB),
+    (all(), u64, pb, PetaByteSize, PB),
+    (all(), u64, pib, PetaByteSize, PIB),
+    (all(), u64, eb, ExaByteSize, EB),
+    (all(), u64, eib, ExaByteSize, EIB),
+    (target_pointer_width = "16", usize, kb, KiloByteSize, KB),
+    (target_pointer_width = "16", usize, kib, KiloByteSize, KIB),
+    (target_pointer_width = "32", usize, kb, KiloByteSize, KB),
+    (target_pointer_width = "32", usize, kib, KiloByteSize, KIB),
+    (target_pointer_width = "32", usize, mb, MegaByteSize, MB),
+    (target_pointer_width = "32", usize, mib, MegaByteSize, MIB),
+    (target_pointer_width = "32", usize, gb, GigaByteSize, GB),
+    (target_pointer_width = "32", usize, gib, GigaByteSize, GIB),
+    (target_pointer_width = "64", usize, kb, KiloByteSize, KB),
+    (target_pointer_width = "64", usize, kib, KiloByteSize, KIB),
+    (target_pointer_width = "64", usize, mb, MegaByteSize, MB),
+    (target_pointer_width = "64", usize, mib, MegaByteSize, MIB),
+    (target_pointer_width = "64", usize, gb, GigaByteSize, GB),
+    (target_pointer_width = "64", usize, gib, GigaByteSize, GIB),
+    (target_pointer_width = "64", usize, tb, TeraByteSize, TB),
+    (target_pointer_width = "64", usize, tib, TeraByteSize, TIB),
+    (target_pointer_width = "64", usize, pb, PetaByteSize, PB),
+    (target_pointer_width = "64", usize, pib, PetaByteSize, PIB),
+    (target_pointer_width = "64", usize, eb, ExaByteSize, EB),
+    (target_pointer_width = "64", usize, eib, ExaByteSize, EIB),
 ] {
+    #[cfg(Cfg)]
     impl ByteSize<Ty> {
         #[doc = concat!(
             "Constructs a byte size wrapper from a quantity of `",
@@ -53,42 +74,6 @@ macroweave::repeat!((Ty, Name, Trait, Size) in [
         #[inline(always)]
         pub const fn Name(size: Ty) -> Self {
             ByteSize(size * <Ty as crate::traits::Trait>::Size)
-        }
-    }
-});
-
-macroweave::repeat!((PointerWidth, Name, Trait, Size) in [
-    ("16", kb, KiloByteSize, KB),
-    ("16", kib, KiloByteSize, KIB),
-    ("32", kb, KiloByteSize, KB),
-    ("32", kib, KiloByteSize, KIB),
-    ("32", mb, MegaByteSize, MB),
-    ("32", mib, MegaByteSize, MIB),
-    ("32", gb, GigaByteSize, GB),
-    ("32", gib, GigaByteSize, GIB),
-    ("64", kb, KiloByteSize, KB),
-    ("64", kib, KiloByteSize, KIB),
-    ("64", mb, MegaByteSize, MB),
-    ("64", mib, MegaByteSize, MIB),
-    ("64", gb, GigaByteSize, GB),
-    ("64", gib, GigaByteSize, GIB),
-    ("64", tb, TeraByteSize, TB),
-    ("64", tib, TeraByteSize, TIB),
-    ("64", pb, PetaByteSize, PB),
-    ("64", pib, PetaByteSize, PIB),
-    ("64", eb, ExaByteSize, EB),
-    ("64", eib, ExaByteSize, EIB),
-] {
-    #[cfg(target_pointer_width = PointerWidth)]
-    impl ByteSize<usize> {
-        #[doc = concat!(
-            "Constructs a byte size wrapper from a quantity of `",
-            stringify!(Name),
-            "` units."
-        )]
-        #[inline(always)]
-        pub const fn Name(size: usize) -> Self {
-            ByteSize(size * <usize as crate::traits::Trait>::Size)
         }
     }
 });
@@ -107,28 +92,49 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
     }
 });
 
-macroweave::repeat!((Ty, Name, Trait, Size, Unit) in [
-    (u16, as_kb, KiloByteSize, KB, "kilobytes"),
-    (u16, as_kib, KiloByteSize, KIB, "kibibytes"),
-    (u32, as_kb, KiloByteSize, KB, "kilobytes"),
-    (u32, as_kib, KiloByteSize, KIB, "kibibytes"),
-    (u32, as_mb, MegaByteSize, MB, "megabytes"),
-    (u32, as_mib, MegaByteSize, MIB, "mebibytes"),
-    (u32, as_gb, GigaByteSize, GB, "gigabytes"),
-    (u32, as_gib, GigaByteSize, GIB, "gibibytes"),
-    (u64, as_kb, KiloByteSize, KB, "kilobytes"),
-    (u64, as_kib, KiloByteSize, KIB, "kibibytes"),
-    (u64, as_mb, MegaByteSize, MB, "megabytes"),
-    (u64, as_mib, MegaByteSize, MIB, "mebibytes"),
-    (u64, as_gb, GigaByteSize, GB, "gigabytes"),
-    (u64, as_gib, GigaByteSize, GIB, "gibibytes"),
-    (u64, as_tb, TeraByteSize, TB, "terabytes"),
-    (u64, as_tib, TeraByteSize, TIB, "tebibytes"),
-    (u64, as_pb, PetaByteSize, PB, "petabytes"),
-    (u64, as_pib, PetaByteSize, PIB, "pebibytes"),
-    (u64, as_eb, ExaByteSize, EB, "exabytes"),
-    (u64, as_eib, ExaByteSize, EIB, "exbibytes"),
+macroweave::repeat!((Cfg, Ty, Name, Trait, Size, Unit) in [
+    (all(), u16, as_kb, KiloByteSize, KB, "kilobytes"),
+    (all(), u16, as_kib, KiloByteSize, KIB, "kibibytes"),
+    (all(), u32, as_kb, KiloByteSize, KB, "kilobytes"),
+    (all(), u32, as_kib, KiloByteSize, KIB, "kibibytes"),
+    (all(), u32, as_mb, MegaByteSize, MB, "megabytes"),
+    (all(), u32, as_mib, MegaByteSize, MIB, "mebibytes"),
+    (all(), u32, as_gb, GigaByteSize, GB, "gigabytes"),
+    (all(), u32, as_gib, GigaByteSize, GIB, "gibibytes"),
+    (all(), u64, as_kb, KiloByteSize, KB, "kilobytes"),
+    (all(), u64, as_kib, KiloByteSize, KIB, "kibibytes"),
+    (all(), u64, as_mb, MegaByteSize, MB, "megabytes"),
+    (all(), u64, as_mib, MegaByteSize, MIB, "mebibytes"),
+    (all(), u64, as_gb, GigaByteSize, GB, "gigabytes"),
+    (all(), u64, as_gib, GigaByteSize, GIB, "gibibytes"),
+    (all(), u64, as_tb, TeraByteSize, TB, "terabytes"),
+    (all(), u64, as_tib, TeraByteSize, TIB, "tebibytes"),
+    (all(), u64, as_pb, PetaByteSize, PB, "petabytes"),
+    (all(), u64, as_pib, PetaByteSize, PIB, "pebibytes"),
+    (all(), u64, as_eb, ExaByteSize, EB, "exabytes"),
+    (all(), u64, as_eib, ExaByteSize, EIB, "exbibytes"),
+    (target_pointer_width = "16", usize, as_kb, KiloByteSize, KB, "kilobytes"),
+    (target_pointer_width = "16", usize, as_kib, KiloByteSize, KIB, "kibibytes"),
+    (target_pointer_width = "32", usize, as_kb, KiloByteSize, KB, "kilobytes"),
+    (target_pointer_width = "32", usize, as_kib, KiloByteSize, KIB, "kibibytes"),
+    (target_pointer_width = "32", usize, as_mb, MegaByteSize, MB, "megabytes"),
+    (target_pointer_width = "32", usize, as_mib, MegaByteSize, MIB, "mebibytes"),
+    (target_pointer_width = "32", usize, as_gb, GigaByteSize, GB, "gigabytes"),
+    (target_pointer_width = "32", usize, as_gib, GigaByteSize, GIB, "gibibytes"),
+    (target_pointer_width = "64", usize, as_kb, KiloByteSize, KB, "kilobytes"),
+    (target_pointer_width = "64", usize, as_kib, KiloByteSize, KIB, "kibibytes"),
+    (target_pointer_width = "64", usize, as_mb, MegaByteSize, MB, "megabytes"),
+    (target_pointer_width = "64", usize, as_mib, MegaByteSize, MIB, "mebibytes"),
+    (target_pointer_width = "64", usize, as_gb, GigaByteSize, GB, "gigabytes"),
+    (target_pointer_width = "64", usize, as_gib, GigaByteSize, GIB, "gibibytes"),
+    (target_pointer_width = "64", usize, as_tb, TeraByteSize, TB, "terabytes"),
+    (target_pointer_width = "64", usize, as_tib, TeraByteSize, TIB, "tebibytes"),
+    (target_pointer_width = "64", usize, as_pb, PetaByteSize, PB, "petabytes"),
+    (target_pointer_width = "64", usize, as_pib, PetaByteSize, PIB, "pebibytes"),
+    (target_pointer_width = "64", usize, as_eb, ExaByteSize, EB, "exabytes"),
+    (target_pointer_width = "64", usize, as_eib, ExaByteSize, EIB, "exbibytes"),
 ] {
+    #[cfg(Cfg)]
     impl ByteSize<Ty> {
         #[doc = concat!("Returns byte count as ", Unit, ".")]
         ///
@@ -137,41 +143,6 @@ macroweave::repeat!((Ty, Name, Trait, Size, Unit) in [
         #[inline(always)]
         pub const fn Name(&self) -> f64 {
             (self.0 as f64) / (<Ty as crate::traits::Trait>::Size as f64)
-        }
-    }
-});
-
-macroweave::repeat!((PointerWidth, Name, Trait, Size, Unit) in [
-    ("16", as_kb, KiloByteSize, KB, "kilobytes"),
-    ("16", as_kib, KiloByteSize, KIB, "kibibytes"),
-    ("32", as_kb, KiloByteSize, KB, "kilobytes"),
-    ("32", as_kib, KiloByteSize, KIB, "kibibytes"),
-    ("32", as_mb, MegaByteSize, MB, "megabytes"),
-    ("32", as_mib, MegaByteSize, MIB, "mebibytes"),
-    ("32", as_gb, GigaByteSize, GB, "gigabytes"),
-    ("32", as_gib, GigaByteSize, GIB, "gibibytes"),
-    ("64", as_kb, KiloByteSize, KB, "kilobytes"),
-    ("64", as_kib, KiloByteSize, KIB, "kibibytes"),
-    ("64", as_mb, MegaByteSize, MB, "megabytes"),
-    ("64", as_mib, MegaByteSize, MIB, "mebibytes"),
-    ("64", as_gb, GigaByteSize, GB, "gigabytes"),
-    ("64", as_gib, GigaByteSize, GIB, "gibibytes"),
-    ("64", as_tb, TeraByteSize, TB, "terabytes"),
-    ("64", as_tib, TeraByteSize, TIB, "tebibytes"),
-    ("64", as_pb, PetaByteSize, PB, "petabytes"),
-    ("64", as_pib, PetaByteSize, PIB, "pebibytes"),
-    ("64", as_eb, ExaByteSize, EB, "exabytes"),
-    ("64", as_eib, ExaByteSize, EIB, "exbibytes"),
-] {
-    #[cfg(target_pointer_width = PointerWidth)]
-    impl ByteSize<usize> {
-        #[doc = concat!("Returns byte count as ", Unit, ".")]
-        ///
-        /// The result is approximate when the byte count cannot be
-        /// represented exactly as `f64`.
-        #[inline(always)]
-        pub const fn Name(&self) -> f64 {
-            (self.0 as f64) / (<usize as crate::traits::Trait>::Size as f64)
         }
     }
 });
