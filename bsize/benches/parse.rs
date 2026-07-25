@@ -12,39 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::hint::black_box;
+use std::fmt;
 
 use bsize::BSize64;
-use criterion::BenchmarkId;
-use criterion::Criterion;
-use criterion::criterion_group;
-use criterion::criterion_main;
+use bsize::ParseError;
 
-fn benchmark_parse(c: &mut Criterion) {
-    let mut group = c.benchmark_group("parse");
-
-    for (name, input) in [
-        ("plain", "42"),
-        ("decimal-unit", "42 MB"),
-        ("binary-unit", "1 KiB"),
-        ("fraction", "1.5 MiB"),
-        ("small-fraction", "0.0025 KB"),
-        ("grouped", "1_234_567_890"),
-        ("u64-max", "18_446_744_073_709_551_615"),
-        ("high-precision-decimal", "1.84467440737095516145 EB"),
-        (
-            "high-precision-binary",
-            "0.0000000000000000004336808689942017736029811203479766845703125 EiB",
-        ),
-        ("malformed", "not-a-size"),
-    ] {
-        group.bench_with_input(BenchmarkId::from_parameter(name), input, |b, input| {
-            b.iter(|| black_box(black_box(input).parse::<BSize64>()))
-        });
-    }
-
-    group.finish();
+#[derive(Clone, Copy)]
+struct ParseCase {
+    name: &'static str,
+    input: &'static str,
 }
 
-criterion_group!(benches, benchmark_parse);
-criterion_main!(benches);
+impl fmt::Display for ParseCase {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name)
+    }
+}
+
+const fn case(name: &'static str, input: &'static str) -> ParseCase {
+    ParseCase { name, input }
+}
+
+const CASES: [ParseCase; 10] = [
+    case("plain", "42"),
+    case("decimal-unit", "42 MB"),
+    case("binary-unit", "1 KiB"),
+    case("fraction", "1.5 MiB"),
+    case("small-fraction", "0.0025 KB"),
+    case("grouped", "1_234_567_890"),
+    case("u64-max", "18_446_744_073_709_551_615"),
+    case("high-precision-decimal", "1.84467440737095516145 EB"),
+    case(
+        "high-precision-binary",
+        "0.0000000000000000004336808689942017736029811203479766845703125 EiB",
+    ),
+    case("malformed", "not-a-size"),
+];
+
+fn main() {
+    divan::main();
+}
+
+#[divan::bench(args = CASES, sample_size = 1024)]
+fn parse(case: ParseCase) -> Result<BSize64, ParseError> {
+    divan::black_box(case.input).parse()
+}

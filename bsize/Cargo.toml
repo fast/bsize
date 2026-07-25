@@ -42,7 +42,7 @@ macroweave = "0.1.0"
 serde_core = { version = "1", default-features = false, optional = true }
 
 [dev-dependencies]
-criterion = { version = "0.7.0", default-features = false }
+divan = "0.1.21"
 insta = { version = "1.47.2" }
 quickcheck = { version = "1.0.0" }
 serde = { version = "1.0.228", features = ["derive"] }

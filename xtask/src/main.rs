@@ -138,10 +138,8 @@ fn make_test_cmd(no_capture: bool, features: &[&str]) -> StdCommand {
 
 fn make_bench_cmd(test: bool) -> StdCommand {
     let mut cmd = find_command("cargo");
-    cmd.args(["bench", "--package", "bsize", "--bench", "parse"]);
-    if test {
-        cmd.args(["--", "--test"]);
-    }
+    cmd.arg(if test { "test" } else { "bench" });
+    cmd.args(["--workspace", "--bench", "*"]);
     cmd
 }
 
