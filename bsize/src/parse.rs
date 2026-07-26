@@ -62,9 +62,6 @@ where
         .map_err(|_| ParseError::Overflow)
 }
 
-// The unit syntax is derived from `parse-size` [1].
-//
-// [1]: https://github.com/kennytm/parse-size/blob/8f2bc5a8/src/lib.rs#L364-L495
 fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
     // trim starting and trailing spaces
     while let [b' ', init @ ..] = src {
