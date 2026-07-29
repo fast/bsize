@@ -49,14 +49,11 @@ enum SubCommand {
 }
 
 #[derive(Parser)]
-struct CommandBench {
-    #[arg(long, help = "Run each benchmark once to verify the benchmark target.")]
-    test: bool,
-}
+struct CommandBench;
 
 impl CommandBench {
     fn run(self) {
-        run_command(make_bench_cmd(self.test));
+        run_command(make_bench_cmd());
     }
 }
 
@@ -136,10 +133,9 @@ fn make_test_cmd(no_capture: bool, features: &[&str]) -> StdCommand {
     cmd
 }
 
-fn make_bench_cmd(test: bool) -> StdCommand {
+fn make_bench_cmd() -> StdCommand {
     let mut cmd = find_command("cargo");
-    cmd.arg(if test { "test" } else { "bench" });
-    cmd.args(["--workspace", "--bench", "*"]);
+    cmd.args(["bench", "--workspace", "--bench", "*"]);
     cmd
 }
 
