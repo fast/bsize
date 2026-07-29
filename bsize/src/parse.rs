@@ -125,16 +125,15 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         match b {
             b'0'..=b'9' => {
                 saw_digit = true;
-                if fraction_start.is_none() {
-                    integer = integer
-                        .checked_mul(10)
-                        .and_then(|v| v.checked_add(u64::from(b - b'0')))
-                        .ok_or(ParseError::Overflow)?;
-                }
+                integer = integer
+                    .checked_mul(10)
+                    .and_then(|v| v.checked_add(u64::from(b - b'0')))
+                    .ok_or(ParseError::Overflow)?;
             }
             b'_' => {}
-            b'.' if saw_digit && fraction_start.is_none() => {
+            b'.' if saw_digit => {
                 fraction_start = Some(index + 1);
+                break;
             }
             _ => return Err(ParseError::Malformed),
         }
@@ -156,13 +155,15 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         let mut carry = 0u64;
         let mut rounding_digit = 0u64;
         for b in src[start..].iter().copied().rev() {
-            if b == b'_' {
-                continue;
+            match b {
+                b'0'..=b'9' => {
+                    let product = u64::from(b - b'0') * multiplier + carry;
+                    rounding_digit = product % 10;
+                    carry = product / 10;
+                }
+                b'_' => {}
+                _ => return Err(ParseError::Malformed),
             }
-
-            let product = u64::from(b - b'0') * multiplier + carry;
-            rounding_digit = product % 10;
-            carry = product / 10;
         }
 
         let fraction = carry + u64::from(rounding_digit >= 5);
