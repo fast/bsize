@@ -4,6 +4,10 @@ All significant changes to this software be documented in this file.
 
 ## Unreleased
 
+### Bug fixes
+
+* Parse arbitrarily precise fractional byte sizes without double rounding or false overflow.
+
 ## v0.3.0 (2026-06-28)
 
 ### Breaking changes

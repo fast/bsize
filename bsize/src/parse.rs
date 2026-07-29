@@ -62,9 +62,6 @@ where
         .map_err(|_| ParseError::Overflow)
 }
 
-// This is derived from `parse-size` [1].
-//
-// [1]: https://github.com/kennytm/parse-size/blob/8f2bc5a8/src/lib.rs#L364-L495
 fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
     // trim starting and trailing spaces
     while let [b' ', init @ ..] = src {
@@ -79,17 +76,17 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         src = init;
     };
 
-    let mut multiply = 1u64;
+    let mut multiplier = 1u64;
     if let [init @ .., b'i' | b'I'] = src {
         src = init;
         if let [init @ .., prefix] = src {
             match prefix {
-                b'k' | b'K' => multiply = 1 << 10,
-                b'm' | b'M' => multiply = 1 << 20,
-                b'g' | b'G' => multiply = 1 << 30,
-                b't' | b'T' => multiply = 1 << 40,
-                b'p' | b'P' => multiply = 1 << 50,
-                b'e' | b'E' => multiply = 1 << 60,
+                b'k' | b'K' => multiplier = 1 << 10,
+                b'm' | b'M' => multiplier = 1 << 20,
+                b'g' | b'G' => multiplier = 1 << 30,
+                b't' | b'T' => multiplier = 1 << 40,
+                b'p' | b'P' => multiplier = 1 << 50,
+                b'e' | b'E' => multiplier = 1 << 60,
                 _ => return Err(ParseError::Malformed),
             }
 
@@ -102,12 +99,12 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         if let [init @ .., prefix] = src {
             'skip: {
                 match prefix {
-                    b'k' | b'K' => multiply = 1_000,
-                    b'm' | b'M' => multiply = 1_000_000,
-                    b'g' | b'G' => multiply = 1_000_000_000,
-                    b't' | b'T' => multiply = 1_000_000_000_000,
-                    b'p' | b'P' => multiply = 1_000_000_000_000_000,
-                    b'e' | b'E' => multiply = 1_000_000_000_000_000_000,
+                    b'k' | b'K' => multiplier = 1_000,
+                    b'm' | b'M' => multiplier = 1_000_000,
+                    b'g' | b'G' => multiplier = 1_000_000_000,
+                    b't' | b'T' => multiplier = 1_000_000_000_000,
+                    b'p' | b'P' => multiplier = 1_000_000_000_000_000,
+                    b'e' | b'E' => multiplier = 1_000_000_000_000_000_000,
                     _ => break 'skip,
                 }
                 src = init;
@@ -120,85 +117,64 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         src = init;
     }
 
-    macro_rules! append_digit {
-        ($before:expr, $method:ident, $digit_char:expr) => {
-            $before
-                .checked_mul(10)
-                .and_then(|v| v.$method(($digit_char - b'0').into()))
-        };
-    }
+    let mut integer = 0u64;
+    let mut saw_digit = false;
+    let mut fraction_start = None;
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    enum ParseState {
-        Empty,
-        Integer,
-        IntegerOverflow,
-        Fraction,
-        FractionOverflow,
-    }
-
-    let mut mantissa = 0u64;
-    let mut exponent = 0i32;
-    let mut state = ParseState::Empty;
-
-    for b in src {
-        match (state, *b) {
-            (ParseState::Integer | ParseState::Empty, b'0'..=b'9') => {
-                if let Some(m) = append_digit!(mantissa, checked_add, *b) {
-                    mantissa = m;
-                    state = ParseState::Integer;
-                } else {
-                    if *b >= b'5' {
-                        mantissa = mantissa.checked_add(1).ok_or(ParseError::Overflow)?;
-                    }
-                    state = ParseState::IntegerOverflow;
-                    exponent += 1;
+    for (index, b) in src.iter().copied().enumerate() {
+        match b {
+            b'0'..=b'9' => {
+                saw_digit = true;
+                if fraction_start.is_none() {
+                    integer = integer
+                        .checked_mul(10)
+                        .and_then(|v| v.checked_add(u64::from(b - b'0')))
+                        .ok_or(ParseError::Overflow)?;
                 }
             }
-            (ParseState::IntegerOverflow, b'0'..=b'9') => {
-                exponent += 1;
+            b'_' => {}
+            b'.' if saw_digit && fraction_start.is_none() => {
+                fraction_start = Some(index + 1);
             }
-            (ParseState::Fraction, b'0'..=b'9') => {
-                if let Some(m) = append_digit!(mantissa, checked_add, *b) {
-                    mantissa = m;
-                    exponent -= 1;
-                } else {
-                    if *b >= b'5' {
-                        mantissa = mantissa.checked_add(1).ok_or(ParseError::Overflow)?;
-                    }
-                    state = ParseState::FractionOverflow;
-                }
-            }
-            (_, b'_') => {}
-            (ParseState::Integer, b'.') => state = ParseState::Fraction,
-            (ParseState::IntegerOverflow, b'.') => state = ParseState::FractionOverflow,
             _ => return Err(ParseError::Malformed),
         }
     }
 
-    if matches!(state, ParseState::Empty) {
+    if !saw_digit {
         return Err(ParseError::Empty);
     }
 
-    let abs_exponent = exponent.unsigned_abs();
-    if exponent >= 0 {
-        let power = 10_u64
-            .checked_pow(abs_exponent)
-            .ok_or(ParseError::Overflow)?;
-        let multiply = multiply.checked_mul(power).ok_or(ParseError::Overflow)?;
-        mantissa.checked_mul(multiply).ok_or(ParseError::Overflow)
-    } else if exponent >= -38 {
-        let power = 10_u128.pow(abs_exponent);
-        let result = (u128::from(mantissa) * u128::from(multiply) + power / 2) / power;
-        u64::try_from(result).map_err(|_| ParseError::Overflow)
-    } else {
-        // (2^128) * 1e-39 < 1, always, and thus saturate to 0.
-        Ok(0)
+    let mut bytes = integer
+        .checked_mul(multiplier)
+        .ok_or(ParseError::Overflow)?;
+
+    if let Some(start) = fraction_start {
+        // Multiply the fraction by the unit multiplier from right to left in base 10.
+        // Once all fractional digits are consumed, carry is the integral byte count and
+        // the last remainder digit determines rounding to the nearest byte.
+        debug_assert!(multiplier <= u64::MAX / 10);
+        let mut carry = 0u64;
+        let mut rounding_digit = 0u64;
+        for b in src[start..].iter().copied().rev() {
+            if b == b'_' {
+                continue;
+            }
+
+            let product = u64::from(b - b'0') * multiplier + carry;
+            rounding_digit = product % 10;
+            carry = product / 10;
+        }
+
+        let fraction = carry + u64::from(rounding_digit >= 5);
+        bytes = bytes.checked_add(fraction).ok_or(ParseError::Overflow)?;
     }
+
+    Ok(bytes)
 }
 
 #[cfg(test)]
 mod tests {
+    use alloc::format;
     use alloc::string::ToString;
 
     use super::*;
@@ -262,9 +238,22 @@ mod tests {
             ("0.0025KB", 3),
             ("0.4B", 0),
             ("0.5B", 1),
+            ("0.1234567890123456789012", 0),
+            ("1.84467440737095516155", 2),
+            ("1.84467440737095516145 EB", 1_844_674_407_370_955_161),
+            ("1.844674407370955161450 EB", 1_844_674_407_370_955_161),
+            (
+                "0.0000000000000000004336808689942017736029811203479766845703124 EiB",
+                0,
+            ),
+            (
+                "0.0000000000000000004336808689942017736029811203479766845703125 EiB",
+                1,
+            ),
             ("18_446_744_073_709_551_581", 18_446_744_073_709_551_581),
             ("18_446_744_073_709_551_615", u64::MAX),
             ("18.446_744_073_709_551_615 EB", u64::MAX),
+            ("18.4467440737095516154 EB", u64::MAX),
             ("1.000_000_000_000_000_001 EB", 1_000_000_000_000_000_001),
         ] {
             assert_parse_ok(input, expected);
@@ -295,7 +284,6 @@ mod tests {
             "1 YiB",
             "1e2 KIB",
             "1E+6",
-            "0.1234567890123456789012",
             "\t1",
             "1\tKB",
         ] {
@@ -308,6 +296,7 @@ mod tests {
             "18446744073709551615.5",
             "184467440737095516155",
             "18.446_744_073_709_551_616 EB",
+            "18.4467440737095516155 EB",
             "19EB",
             "16EiB",
             "100000000000000000000",
@@ -318,5 +307,36 @@ mod tests {
         assert_eq!("256".parse::<ByteSize<u8>>(), Err(ParseError::Overflow));
         assert_eq!("64 KiB".parse::<ByteSize<u16>>(), Err(ParseError::Overflow));
         assert_eq!("4GiB".parse::<ByteSize<u32>>(), Err(ParseError::Overflow));
+    }
+
+    quickcheck::quickcheck! {
+        fn parses_eib_fractions_exactly(whole: u8, fraction: u64) -> bool {
+            const MULTIPLIER: u128 = 1 << 60;
+            const SCALE: u128 = 1_000_000_000_000_000_000;
+
+            let whole = whole % 16;
+            let fraction = fraction % SCALE as u64;
+            let input = format!("{whole}.{fraction:018} EiB");
+            let actual = input.parse::<ByteSize<u64>>();
+            let expected = u128::from(whole) * MULTIPLIER
+                + (u128::from(fraction) * MULTIPLIER + SCALE / 2) / SCALE;
+
+            if expected > u128::from(u64::MAX) {
+                actual == Err(ParseError::Overflow)
+            } else {
+                actual == Ok(ByteSize::b(u64::try_from(expected).unwrap()))
+            }
+        }
+
+        fn fractional_trailing_zero_preserves_value(whole: u8, fraction: u64) -> bool {
+            const SCALE: u64 = 1_000_000_000_000_000_000;
+
+            let whole = whole % 16;
+            let fraction = fraction % SCALE;
+            let input = format!("{whole}.{fraction:018} EiB");
+            let input_with_zero = format!("{whole}.{fraction:018}0 EiB");
+
+            input.parse::<ByteSize<u64>>() == input_with_zero.parse::<ByteSize<u64>>()
+        }
     }
 }
