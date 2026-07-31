@@ -28,8 +28,8 @@
 //!   the `usize` alias and [`BSize8`], [`BSize16`], [`BSize32`], and [`BSize64`] as shorter aliases
 //!   for fixed-width base types.
 //! * `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB"
-//!   and "521 TB". Fractional values default to half-expand rounding, and all [`RoundMode`]
-//!   variants can be selected explicitly with [`ByteSize::parse_with_rounding`].
+//!   and "521 TB". Fractional values default to half-ceil rounding, and all [`RoundMode`] variants
+//!   can be selected explicitly with [`ByteSize::parse_with_rounding`].
 //! * Exact [`core::fmt::Display`] impl for [`ByteSize`], rendering the underlying byte count in
 //!   base bytes (e.g., "1572864 B").
 //! * Configurable, approximate human-readable formatting in both binary (e.g., "1.5 MiB") and
@@ -153,10 +153,9 @@ pub use self::traits::TeraByteSize;
 /// # Parsing and rounding
 ///
 /// Parsing applies the unit multiplier before rounding the resulting value once to a whole number
-/// of bytes. The standard [`core::str::FromStr`] implementation uses [`RoundMode::HalfExpand`]: the
+/// of bytes. The standard [`core::str::FromStr`] implementation uses [`RoundMode::HalfCeil`]: the
 /// nearest whole byte is selected, and a value exactly halfway between two byte counts is rounded
-/// away from zero. Since byte sizes are non-negative, this means that a tie is rounded toward the
-/// larger byte count. Use [`ByteSize::parse_with_rounding`] to select another mode.
+/// toward the larger byte count. Use [`ByteSize::parse_with_rounding`] to select another mode.
 ///
 /// Decimal fractions are evaluated exactly without first converting them to floating point.
 /// Overflow is checked after rounding, both against `u64` and against the integer type backing the

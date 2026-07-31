@@ -21,13 +21,10 @@ use crate::ByteSize;
 
 /// The mode used to round a fractional byte count to a whole number of bytes.
 ///
-/// Parsing only accepts non-negative byte sizes. Consequently, some modes have equivalent behavior:
-/// [`Ceil`](RoundMode::Ceil) and [`Expand`](RoundMode::Expand),
-/// [`Floor`](RoundMode::Floor) and [`Trunc`](RoundMode::Trunc),
-/// [`HalfCeil`](RoundMode::HalfCeil) and [`HalfExpand`](RoundMode::HalfExpand), and
-/// [`HalfFloor`](RoundMode::HalfFloor) and [`HalfTrunc`](RoundMode::HalfTrunc).
+/// Parsing only accepts non-negative byte sizes, so these variants cover the distinct behaviors
+/// relevant here without separate zero-oriented aliases such as truncation or expansion.
 ///
-/// [`RoundMode::HalfExpand`] is the default used by [`core::str::FromStr`]. Use
+/// [`RoundMode::HalfCeil`] is the default used by [`core::str::FromStr`]. Use
 /// [`ByteSize::parse_with_rounding`] to select another mode.
 ///
 /// # Examples
@@ -42,55 +39,29 @@ use crate::ByteSize;
 /// );
 /// assert_eq!(
 ///     BSize64::b(3),
-///     BSize64::parse_with_rounding("2.5 B", RoundMode::HalfExpand).unwrap(),
+///     BSize64::parse_with_rounding("2.5 B", RoundMode::HalfCeil).unwrap(),
 /// );
 /// ```
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum RoundMode {
-    /// Rounds toward positive infinity.
-    ///
-    /// Since parsed byte sizes are non-negative, this is equivalent to [`RoundMode::Expand`].
+    /// Rounds toward the larger whole byte count.
     Ceil,
-    /// Rounds toward negative infinity.
-    ///
-    /// Since parsed byte sizes are non-negative, this is equivalent to [`RoundMode::Trunc`].
+    /// Rounds toward the smaller whole byte count, discarding any fractional byte.
     Floor,
-    /// Rounds away from zero.
+    /// Rounds to the nearest whole byte, with ties toward the larger byte count.
     ///
-    /// Since parsed byte sizes are non-negative, this is equivalent to [`RoundMode::Ceil`].
-    Expand,
-    /// Rounds toward zero, discarding any fractional byte.
-    ///
-    /// Since parsed byte sizes are non-negative, this is equivalent to [`RoundMode::Floor`].
-    Trunc,
-    /// Rounds to the nearest whole byte, with ties toward positive infinity.
-    ///
-    /// Since parsed byte sizes are non-negative, this is equivalent to [`RoundMode::HalfExpand`].
-    HalfCeil,
-    /// Rounds to the nearest whole byte, with ties toward negative infinity.
-    ///
-    /// Since parsed byte sizes are non-negative, this is equivalent to [`RoundMode::HalfTrunc`].
-    HalfFloor,
-    /// Rounds to the nearest whole byte, with ties away from zero.
-    ///
-    /// Since parsed byte sizes are non-negative, a tie is rounded toward the larger byte count.
     /// This is the default used by [`core::str::FromStr`].
-    HalfExpand,
-    /// Rounds to the nearest whole byte, with ties toward zero.
-    ///
-    /// Since parsed byte sizes are non-negative, a tie is rounded toward the smaller byte count.
-    HalfTrunc,
+    HalfCeil,
+    /// Rounds to the nearest whole byte, with ties toward the smaller byte count.
+    HalfFloor,
     /// Rounds to the nearest whole byte, with ties toward the even byte count.
     HalfEven,
 }
 
 impl RoundMode {
     const fn needs_trailing_nonzero(self) -> bool {
-        matches!(
-            self,
-            Self::Ceil | Self::Expand | Self::HalfFloor | Self::HalfTrunc | Self::HalfEven
-        )
+        matches!(self, Self::Ceil | Self::HalfFloor | Self::HalfEven)
     }
 }
 
@@ -130,7 +101,7 @@ where
     /// backing this [`ByteSize`].
     ///
     /// Use the standard [`core::str::FromStr`] implementation when the default
-    /// [`RoundMode::HalfExpand`] behavior is sufficient.
+    /// [`RoundMode::HalfCeil`] behavior is sufficient.
     ///
     /// # Examples
     ///
@@ -140,7 +111,7 @@ where
     ///
     /// assert_eq!(
     ///     BSize8::b(1),
-    ///     BSize8::parse_with_rounding("1.9 B", RoundMode::Trunc).unwrap(),
+    ///     BSize8::parse_with_rounding("1.9 B", RoundMode::Floor).unwrap(),
     /// );
     /// assert_eq!(
     ///     BSize8::b(2),
@@ -162,9 +133,9 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
         type Err = ParseError;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            // HalfExpand rounds both exact ties and greater-than-half values upward, so the
+            // HalfCeil rounds both exact ties and greater-than-half values upward, so the
             // default path does not need to track lower discarded digits.
-            bsize_from_u64(parse_size::<false>(s.as_bytes(), RoundMode::HalfExpand)?)
+            bsize_from_u64(parse_size::<false>(s.as_bytes(), RoundMode::HalfCeil)?)
         }
     }
 });
@@ -309,10 +280,10 @@ fn should_round_up(
     let tie = rounding_digit == 5 && !trailing_nonzero;
 
     match mode {
-        RoundMode::Ceil | RoundMode::Expand => has_remainder,
-        RoundMode::Floor | RoundMode::Trunc => false,
-        RoundMode::HalfCeil | RoundMode::HalfExpand => greater_than_half || tie,
-        RoundMode::HalfFloor | RoundMode::HalfTrunc => greater_than_half,
+        RoundMode::Ceil => has_remainder,
+        RoundMode::Floor => false,
+        RoundMode::HalfCeil => greater_than_half || tie,
+        RoundMode::HalfFloor => greater_than_half,
         RoundMode::HalfEven => greater_than_half || (tie && lower % 2 == 1),
     }
 }
@@ -324,15 +295,11 @@ mod tests {
 
     use super::*;
 
-    const ROUND_MODES: [RoundMode; 9] = [
+    const ROUND_MODES: [RoundMode; 5] = [
         RoundMode::Ceil,
         RoundMode::Floor,
-        RoundMode::Expand,
-        RoundMode::Trunc,
         RoundMode::HalfCeil,
         RoundMode::HalfFloor,
-        RoundMode::HalfExpand,
-        RoundMode::HalfTrunc,
         RoundMode::HalfEven,
     ];
 
@@ -476,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    fn fractional_values_round_half_expand() {
+    fn fractional_values_round_half_ceil() {
         for (input, expected) in [
             ("0.499 B", 0),
             ("0.5 B", 1),
@@ -495,29 +462,21 @@ mod tests {
 
     #[test]
     fn supports_all_rounding_modes() {
-        for mode in [RoundMode::Ceil, RoundMode::Expand] {
-            assert_rounds("1 B", mode, 1);
-            assert_rounds("1.0000000000000000001 B", mode, 2);
-            assert_rounds("1.9 B", mode, 2);
-        }
+        assert_rounds("1 B", RoundMode::Ceil, 1);
+        assert_rounds("1.0000000000000000001 B", RoundMode::Ceil, 2);
+        assert_rounds("1.9 B", RoundMode::Ceil, 2);
 
-        for mode in [RoundMode::Floor, RoundMode::Trunc] {
-            assert_rounds("1 B", mode, 1);
-            assert_rounds("1.1 B", mode, 1);
-            assert_rounds("1.9999999999999999999 B", mode, 1);
-        }
+        assert_rounds("1 B", RoundMode::Floor, 1);
+        assert_rounds("1.1 B", RoundMode::Floor, 1);
+        assert_rounds("1.9999999999999999999 B", RoundMode::Floor, 1);
 
-        for mode in [RoundMode::HalfCeil, RoundMode::HalfExpand] {
-            assert_rounds("1.4999999999999999999 B", mode, 1);
-            assert_rounds("1.5 B", mode, 2);
-            assert_rounds("1.5000000000000000001 B", mode, 2);
-        }
+        assert_rounds("1.4999999999999999999 B", RoundMode::HalfCeil, 1);
+        assert_rounds("1.5 B", RoundMode::HalfCeil, 2);
+        assert_rounds("1.5000000000000000001 B", RoundMode::HalfCeil, 2);
 
-        for mode in [RoundMode::HalfFloor, RoundMode::HalfTrunc] {
-            assert_rounds("1.4999999999999999999 B", mode, 1);
-            assert_rounds("1.5 B", mode, 1);
-            assert_rounds("1.5000000000000000001 B", mode, 2);
-        }
+        assert_rounds("1.4999999999999999999 B", RoundMode::HalfFloor, 1);
+        assert_rounds("1.5 B", RoundMode::HalfFloor, 1);
+        assert_rounds("1.5000000000000000001 B", RoundMode::HalfFloor, 2);
 
         assert_rounds("0.5 B", RoundMode::HalfEven, 0);
         assert_rounds("1.5 B", RoundMode::HalfEven, 2);
@@ -529,8 +488,8 @@ mod tests {
     #[test]
     fn applies_units_before_rounding() {
         for input in ["0.0005 kB", "0.00048828125 KiB"] {
-            assert_rounds(input, RoundMode::HalfExpand, 1);
-            assert_rounds(input, RoundMode::HalfTrunc, 0);
+            assert_rounds(input, RoundMode::HalfCeil, 1);
+            assert_rounds(input, RoundMode::HalfFloor, 0);
             assert_rounds(input, RoundMode::HalfEven, 0);
         }
 
@@ -552,7 +511,7 @@ mod tests {
             Err(ParseError::Overflow),
         );
         assert_eq!(
-            ByteSize::<u8>::parse_with_rounding("255.5 B", RoundMode::HalfTrunc),
+            ByteSize::<u8>::parse_with_rounding("255.5 B", RoundMode::HalfFloor),
             Ok(ByteSize::b(255)),
         );
         assert_eq!(
@@ -576,10 +535,10 @@ mod tests {
 
             for mode in ROUND_MODES {
                 let round_up = match mode {
-                    RoundMode::Ceil | RoundMode::Expand => remainder != 0,
-                    RoundMode::Floor | RoundMode::Trunc => false,
-                    RoundMode::HalfCeil | RoundMode::HalfExpand => twice_remainder >= SCALE,
-                    RoundMode::HalfFloor | RoundMode::HalfTrunc => twice_remainder > SCALE,
+                    RoundMode::Ceil => remainder != 0,
+                    RoundMode::Floor => false,
+                    RoundMode::HalfCeil => twice_remainder >= SCALE,
+                    RoundMode::HalfFloor => twice_remainder > SCALE,
                     RoundMode::HalfEven => {
                         twice_remainder > SCALE || (twice_remainder == SCALE && lower % 2 == 1)
                     }
