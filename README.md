@@ -36,34 +36,6 @@ With the `nightly` feature enabled on a nightly compiler, this crate can use uns
 
 Read the online documents at https://docs.rs/bsize.
 
-## Formatting
-
-The standard `Display` implementation for `ByteSize` preserves the exact integer byte count and
-always uses the base-byte unit:
-
-```rust
-use bsize::BSize64;
-
-let size = BSize64::mib(1);
-assert_eq!("1048576 B", size.to_string());
-```
-
-Use `ByteSize::display` or the free `display` function for configurable, human-readable output:
-
-```rust
-use bsize::BSize64;
-
-let size = BSize64::mib(1);
-assert_eq!("1.0 MiB", size.display().to_string());
-assert_eq!("1.0 MB", size.display().decimal().to_string());
-```
-
-The human-readable `Display` wrapper stores and scales values as `f64`. Integer inputs are
-converted to `f64` first, so sufficiently large integers may lose precision or cross an automatic
-scale boundary. Its output is intended for presentation and is not guaranteed to parse back to the
-original byte count. Use the standard `ByteSize` formatting shown above when an exact or
-round-trippable representation is required.
-
 ## Why Yet Another Byte Size Crate?
 
 There are already several crates that provide functionality for parsing, formatting, and/or representing byte sizes.
