@@ -27,7 +27,7 @@ pub enum ParseError {
     Empty,
     /// The input contains malformed bytes.
     Malformed,
-    /// The parsed byte count is too large for the target integer type.
+    /// The resulting byte count is too large for the target integer type.
     Overflow,
 }
 
@@ -309,8 +309,32 @@ mod tests {
         assert_eq!("4GiB".parse::<ByteSize<u32>>(), Err(ParseError::Overflow));
     }
 
+    #[test]
+    fn fractional_values_round_half_expand() {
+        for (input, expected) in [
+            ("0.499 B", 0),
+            ("0.5 B", 1),
+            ("0.501 B", 1),
+            ("1.499 B", 1),
+            ("1.5 B", 2),
+            ("2.5 B", 3),
+            ("0.0004 kB", 0),
+            ("0.0005 kB", 1),
+            ("0.0006 kB", 1),
+            ("0.00048828125 KiB", 1),
+        ] {
+            assert_parse_ok(input, expected);
+        }
+    }
+
+    #[test]
+    fn rounding_precedes_target_range_check() {
+        assert_eq!("255.4 B".parse::<ByteSize<u8>>(), Ok(ByteSize::b(255)));
+        assert_eq!("255.5 B".parse::<ByteSize<u8>>(), Err(ParseError::Overflow),);
+    }
+
     quickcheck::quickcheck! {
-        fn parses_eib_fractions_exactly(whole: u8, fraction: u64) -> bool {
+        fn eib_fractions_use_exact_half_expand_rounding(whole: u8, fraction: u64) -> bool {
             const MULTIPLIER: u128 = 1 << 60;
             const SCALE: u128 = 1_000_000_000_000_000_000;
 
