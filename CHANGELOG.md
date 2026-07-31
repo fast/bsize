@@ -6,7 +6,7 @@ All significant changes to this software be documented in this file.
 
 ### New features
 
-* Added `RoundMode` and `ByteSize::parse_with_rounding` for selecting ceil, floor, half-ceil, half-floor, or half-even rounding of fractional byte counts. Standard parsing uses half-ceil rounding.
+* Added `RoundMode`, `ParseOptions`, and `ByteSize::parse_with` for selecting ceil, floor, half-ceil, half-floor, or half-even rounding of fractional byte counts. Standard parsing uses the default options with half-ceil rounding.
 
 ### Bug fixes
 

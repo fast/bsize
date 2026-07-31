@@ -24,22 +24,26 @@ use crate::ByteSize;
 /// Parsing only accepts non-negative byte sizes, so these variants cover the distinct behaviors
 /// relevant here without separate zero-oriented aliases such as truncation or expansion.
 ///
-/// [`RoundMode::HalfCeil`] is the default used by [`core::str::FromStr`]. Use
-/// [`ByteSize::parse_with_rounding`] to select another mode.
+/// [`RoundMode::HalfCeil`] is the default used by [`ParseOptions`] and [`core::str::FromStr`]. Use
+/// [`ByteSize::parse_with`] to select another mode.
 ///
 /// # Examples
 ///
 /// ```
 /// use bsize::BSize64;
+/// use bsize::ParseOptions;
 /// use bsize::RoundMode;
 ///
+/// let mut options = ParseOptions::default();
+/// options.round_mode = RoundMode::HalfEven;
 /// assert_eq!(
 ///     BSize64::b(2),
-///     BSize64::parse_with_rounding("2.5 B", RoundMode::HalfEven).unwrap(),
+///     BSize64::parse_with("2.5 B", options).unwrap(),
 /// );
+/// options.round_mode = RoundMode::HalfCeil;
 /// assert_eq!(
 ///     BSize64::b(3),
-///     BSize64::parse_with_rounding("2.5 B", RoundMode::HalfCeil).unwrap(),
+///     BSize64::parse_with("2.5 B", options).unwrap(),
 /// );
 /// ```
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -62,6 +66,43 @@ pub enum RoundMode {
 impl RoundMode {
     const fn needs_trailing_nonzero(self) -> bool {
         matches!(self, Self::Ceil | Self::HalfFloor | Self::HalfEven)
+    }
+}
+
+/// Options that control byte size parsing.
+///
+/// Use [`ParseOptions::default`] for the standard parsing behavior, then update fields to select
+/// different behavior. Pass the options to [`ByteSize::parse_with`].
+///
+/// # Examples
+///
+/// ```
+/// use bsize::BSize64;
+/// use bsize::ParseOptions;
+/// use bsize::RoundMode;
+///
+/// let mut options = ParseOptions::default();
+/// options.round_mode = RoundMode::Floor;
+///
+/// assert_eq!(
+///     BSize64::b(1),
+///     BSize64::parse_with("1.9 B", options).unwrap()
+/// );
+/// ```
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub struct ParseOptions {
+    /// The mode used to round a fractional byte count to a whole number of bytes.
+    ///
+    /// Defaults to [`RoundMode::HalfCeil`].
+    pub round_mode: RoundMode,
+}
+
+impl Default for ParseOptions {
+    fn default() -> Self {
+        Self {
+            round_mode: RoundMode::HalfCeil,
+        }
     }
 }
 
@@ -93,32 +134,31 @@ impl<T> ByteSize<T>
 where
     T: BaseByteSize + TryFrom<u64>,
 {
-    /// Parses a byte size using the given rounding mode.
+    /// Parses a byte size using the given options.
     ///
     /// The unit multiplier is applied before the resulting value is rounded once to a whole number
     /// of bytes. Decimal fractions are evaluated exactly without first converting them to floating
     /// point. Overflow is checked after rounding, both against `u64` and against the integer type
     /// backing this [`ByteSize`].
     ///
-    /// Use the standard [`core::str::FromStr`] implementation when the default
-    /// [`RoundMode::HalfCeil`] behavior is sufficient.
+    /// Use the standard [`core::str::FromStr`] implementation when [`ParseOptions::default`] is
+    /// sufficient.
     ///
     /// # Examples
     ///
     /// ```
     /// use bsize::BSize8;
+    /// use bsize::ParseOptions;
     /// use bsize::RoundMode;
     ///
-    /// assert_eq!(
-    ///     BSize8::b(1),
-    ///     BSize8::parse_with_rounding("1.9 B", RoundMode::Floor).unwrap(),
-    /// );
-    /// assert_eq!(
-    ///     BSize8::b(2),
-    ///     BSize8::parse_with_rounding("1.1 B", RoundMode::Ceil).unwrap(),
-    /// );
+    /// let mut options = ParseOptions::default();
+    /// options.round_mode = RoundMode::Floor;
+    /// assert_eq!(BSize8::b(1), BSize8::parse_with("1.9 B", options).unwrap());
+    /// options.round_mode = RoundMode::Ceil;
+    /// assert_eq!(BSize8::b(2), BSize8::parse_with("1.1 B", options).unwrap());
     /// ```
-    pub fn parse_with_rounding(s: &str, mode: RoundMode) -> Result<Self, ParseError> {
+    pub fn parse_with(s: &str, options: ParseOptions) -> Result<Self, ParseError> {
+        let mode = options.round_mode;
         let size = if mode.needs_trailing_nonzero() {
             parse_size::<true>(s.as_bytes(), mode)?
         } else {
@@ -133,9 +173,7 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
         type Err = ParseError;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            // HalfCeil rounds both exact ties and greater-than-half values upward, so the
-            // default path does not need to track lower discarded digits.
-            bsize_from_u64(parse_size::<false>(s.as_bytes(), RoundMode::HalfCeil)?)
+            Self::parse_with(s, ParseOptions::default())
         }
     }
 });
@@ -321,7 +359,8 @@ mod tests {
     }
 
     fn assert_rounds(input: &str, mode: RoundMode, expected: u64) {
-        let actual = ByteSize::<u64>::parse_with_rounding(input, mode).unwrap();
+        let options = ParseOptions { round_mode: mode };
+        let actual = ByteSize::<u64>::parse_with(input, options).unwrap();
         assert_eq!(
             actual,
             ByteSize::b(expected),
@@ -502,20 +541,26 @@ mod tests {
         assert_eq!("255.4 B".parse::<ByteSize<u8>>(), Ok(ByteSize::b(255)));
         assert_eq!("255.5 B".parse::<ByteSize<u8>>(), Err(ParseError::Overflow),);
 
+        let mut options = ParseOptions {
+            round_mode: RoundMode::Floor,
+        };
         assert_eq!(
-            ByteSize::<u8>::parse_with_rounding("255.9 B", RoundMode::Floor),
+            ByteSize::<u8>::parse_with("255.9 B", options),
             Ok(ByteSize::b(255)),
         );
+        options.round_mode = RoundMode::Ceil;
         assert_eq!(
-            ByteSize::<u8>::parse_with_rounding("255.1 B", RoundMode::Ceil),
+            ByteSize::<u8>::parse_with("255.1 B", options),
             Err(ParseError::Overflow),
         );
+        options.round_mode = RoundMode::HalfFloor;
         assert_eq!(
-            ByteSize::<u8>::parse_with_rounding("255.5 B", RoundMode::HalfFloor),
+            ByteSize::<u8>::parse_with("255.5 B", options),
             Ok(ByteSize::b(255)),
         );
+        options.round_mode = RoundMode::HalfEven;
         assert_eq!(
-            ByteSize::<u8>::parse_with_rounding("255.5 B", RoundMode::HalfEven),
+            ByteSize::<u8>::parse_with("255.5 B", options),
             Err(ParseError::Overflow),
         );
     }
@@ -544,7 +589,8 @@ mod tests {
                     }
                 };
                 let expected = lower + u128::from(round_up);
-                let actual = ByteSize::<u64>::parse_with_rounding(&input, mode);
+                let options = ParseOptions { round_mode: mode };
+                let actual = ByteSize::<u64>::parse_with(&input, options);
 
                 if expected > u128::from(u64::MAX) {
                     if actual != Err(ParseError::Overflow) {
@@ -570,8 +616,9 @@ mod tests {
             let input_with_zero = format!("{whole}.{fraction:018}0 EiB");
 
             ROUND_MODES.into_iter().all(|mode| {
-                ByteSize::<u64>::parse_with_rounding(&input, mode)
-                    == ByteSize::<u64>::parse_with_rounding(&input_with_zero, mode)
+                let options = ParseOptions { round_mode: mode };
+                ByteSize::<u64>::parse_with(&input, options)
+                    == ByteSize::<u64>::parse_with(&input_with_zero, options)
             })
         }
     }
