@@ -29,8 +29,10 @@
 //!   for fixed-width base types.
 //! * `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB"
 //!   and "521 TB".
-//! * [`Display`] impl for `ByteSize`, allowing for formatting byte sizes as human-readable strings
-//!   in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
+//! * Exact [`core::fmt::Display`] impl for [`ByteSize`], rendering the underlying byte count in
+//!   base bytes (e.g., "1572864 B").
+//! * Configurable, approximate human-readable formatting in both binary (e.g., "1.5 MiB") and
+//!   decimal (e.g., "1.6 MB") styles.
 //! * Optional `serde` support for binary and human-readable format.
 //! * Optional `nightly` support for a broader const-friendly API surface powered by nightly-only
 //!   Rust features.
@@ -66,13 +68,17 @@
 //! assert_eq!(BSize64::mib(1).map(|bytes| bytes + 512 * 1024), size);
 //! ```
 //!
-//! Display as human-readable string.
+//! Format the exact byte count or an approximate human-readable string.
 //!
 //! ```
 //! use bsize::BSize;
 //! use bsize::DisplayBaseUnit;
 //! use bsize::DisplayOptions;
 //! use bsize::DisplayScale;
+//!
+//! let size = BSize::mib(1);
+//! assert_eq!("1048576 B", size.to_string());
+//! assert_eq!("1.0 MiB", size.display().to_string());
 //!
 //! assert_eq!("518.0 GiB", BSize::gib(518).display().binary().to_string());
 //!
@@ -138,7 +144,9 @@ pub use self::traits::TeraByteSize;
 /// Byte size representation.
 ///
 /// Use [`ByteSize::b`] to construct a value from bytes and [`ByteSize::bytes`] to get
-/// the exact underlying byte count.
+/// the exact underlying byte count. Its standard [`core::fmt::Display`] implementation renders
+/// that exact count in base bytes. Use [`ByteSize::display`] for configurable, approximate
+/// human-readable formatting.
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ByteSize<T: BaseByteSize>(T);
 

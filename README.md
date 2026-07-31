@@ -23,7 +23,8 @@ This crate provides multiple semantic wrappers and utilities for byte size repre
 * `#![no_std]`-capable, no heap allocation, and no runtime dependencies by default.
 * `ByteSize<T>` wrappers over supported unsigned integer base types, with `BSize` as the `usize` alias and `BSize8`, `BSize16`, `BSize32`, and `BSize64` aliases for fixed-width base types.
 * `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB".
-* `Display` impl for `ByteSize`, allowing for formatting byte sizes as human-readable strings in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.5 MB") styles.
+* Exact `Display` impl for `ByteSize`, rendering the underlying byte count in base bytes (e.g., "1572864 B").
+* Configurable, approximate human-readable formatting in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.6 MB") styles.
 * Optional `serde` support for binary and human-readable format.
 * Optional `nightly` support for a broader const-friendly API surface powered by nightly-only Rust features.
 
@@ -34,6 +35,34 @@ With the `nightly` feature enabled on a nightly compiler, this crate can use uns
 ## Documentation
 
 Read the online documents at https://docs.rs/bsize.
+
+## Formatting
+
+The standard `Display` implementation for `ByteSize` preserves the exact integer byte count and
+always uses the base-byte unit:
+
+```rust
+use bsize::BSize64;
+
+let size = BSize64::mib(1);
+assert_eq!("1048576 B", size.to_string());
+```
+
+Use `ByteSize::display` or the free `display` function for configurable, human-readable output:
+
+```rust
+use bsize::BSize64;
+
+let size = BSize64::mib(1);
+assert_eq!("1.0 MiB", size.display().to_string());
+assert_eq!("1.0 MB", size.display().decimal().to_string());
+```
+
+The human-readable `Display` wrapper stores and scales values as `f64`. Integer inputs are
+converted to `f64` first, so sufficiently large integers may lose precision or cross an automatic
+scale boundary. Its output is intended for presentation and is not guaranteed to parse back to the
+original byte count. Use the standard `ByteSize` formatting shown above when an exact or
+round-trippable representation is required.
 
 ## Why Yet Another Byte Size Crate?
 
