@@ -22,7 +22,7 @@ This crate provides multiple semantic wrappers and utilities for byte size repre
 
 * `#![no_std]`-capable, no heap allocation, and no runtime dependencies by default.
 * `ByteSize<T>` wrappers over supported unsigned integer base types, with `BSize` as the `usize` alias and `BSize8`, `BSize16`, `BSize32`, and `BSize64` aliases for fixed-width base types.
-* `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB". Fractional values are rounded once to the nearest whole byte, with ties rounded toward the larger byte count.
+* `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB" and "521 TB". Fractional values default to half-expand rounding, and all rounding modes can be selected explicitly with `ByteSize::parse_with_rounding`.
 * Exact `Display` impl for `ByteSize`, rendering the underlying byte count in base bytes (e.g., "1572864 B").
 * Configurable, approximate human-readable formatting in both binary (e.g., "1.5 MiB") and decimal (e.g., "1.6 MB") styles.
 * Optional `serde` support for binary and human-readable format.

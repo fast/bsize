@@ -4,6 +4,10 @@ All significant changes to this software be documented in this file.
 
 ## Unreleased
 
+### New features
+
+* Added `RoundMode` and `ByteSize::parse_with_rounding` for selecting how fractional byte counts are rounded to whole bytes.
+
 ### Bug fixes
 
 * Parse arbitrarily precise fractional byte sizes without double rounding or false overflow.

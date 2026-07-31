@@ -28,8 +28,8 @@
 //!   the `usize` alias and [`BSize8`], [`BSize16`], [`BSize32`], and [`BSize64`] as shorter aliases
 //!   for fixed-width base types.
 //! * `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5 KiB"
-//!   and "521 TB". Fractional values are rounded once to the nearest whole byte, with ties rounded
-//!   toward the larger byte count.
+//!   and "521 TB". Fractional values default to half-expand rounding, and all [`RoundMode`]
+//!   variants can be selected explicitly with [`ByteSize::parse_with_rounding`].
 //! * Exact [`core::fmt::Display`] impl for [`ByteSize`], rendering the underlying byte count in
 //!   base bytes (e.g., "1572864 B").
 //! * Configurable, approximate human-readable formatting in both binary (e.g., "1.5 MiB") and
@@ -134,6 +134,7 @@ pub use self::display::DisplayScale;
 pub use self::display::DisplayUnitSystem;
 pub use self::display::display;
 pub use self::parse::ParseError;
+pub use self::parse::RoundMode;
 pub use self::traits::BaseByteSize;
 pub use self::traits::ExaByteSize;
 pub use self::traits::GigaByteSize;
@@ -152,9 +153,10 @@ pub use self::traits::TeraByteSize;
 /// # Parsing and rounding
 ///
 /// Parsing applies the unit multiplier before rounding the resulting value once to a whole number
-/// of bytes. It uses half-expand rounding: the nearest whole byte is selected, and a value exactly
-/// halfway between two byte counts is rounded away from zero. Since byte sizes are non-negative,
-/// this means that a tie is rounded toward the larger byte count.
+/// of bytes. The standard [`core::str::FromStr`] implementation uses [`RoundMode::HalfExpand`]: the
+/// nearest whole byte is selected, and a value exactly halfway between two byte counts is rounded
+/// away from zero. Since byte sizes are non-negative, this means that a tie is rounded toward the
+/// larger byte count. Use [`ByteSize::parse_with_rounding`] to select another mode.
 ///
 /// Decimal fractions are evaluated exactly without first converting them to floating point.
 /// Overflow is checked after rounding, both against `u64` and against the integer type backing the
@@ -164,10 +166,15 @@ pub use self::traits::TeraByteSize;
 /// use bsize::BSize8;
 /// use bsize::BSize64;
 /// use bsize::ParseError;
+/// use bsize::RoundMode;
 ///
 /// assert_eq!(BSize64::b(0), "0.499 B".parse().unwrap());
 /// assert_eq!(BSize64::b(1), "0.5 B".parse().unwrap());
 /// assert_eq!(BSize64::b(1_235), "1.2345 kB".parse().unwrap());
+/// assert_eq!(
+///     BSize64::b(2),
+///     BSize64::parse_with_rounding("2.5 B", RoundMode::HalfEven).unwrap(),
+/// );
 ///
 /// // The rounded result fits in u8.
 /// assert_eq!(BSize8::b(255), "255.4 B".parse().unwrap());
