@@ -63,12 +63,6 @@ pub enum RoundMode {
     HalfEven,
 }
 
-impl RoundMode {
-    const fn needs_trailing_nonzero(self) -> bool {
-        matches!(self, Self::Ceil | Self::HalfFloor | Self::HalfEven)
-    }
-}
-
 /// Options that control byte size parsing.
 ///
 /// Use [`ParseOptions::default`] for the standard parsing behavior, then update fields to select
@@ -159,11 +153,7 @@ where
     /// ```
     pub fn parse_with(s: &str, options: ParseOptions) -> Result<Self, ParseError> {
         let mode = options.round_mode;
-        let size = if mode.needs_trailing_nonzero() {
-            parse_size::<true>(s.as_bytes(), mode)?
-        } else {
-            parse_size::<false>(s.as_bytes(), mode)?
-        };
+        let size = parse_size(s.as_bytes(), mode)?;
         bsize_from_u64(size)
     }
 }
@@ -187,10 +177,7 @@ where
         .map_err(|_| ParseError::Overflow)
 }
 
-fn parse_size<const TRACK_TRAILING_NONZERO: bool>(
-    mut src: &[u8],
-    mode: RoundMode,
-) -> Result<u64, ParseError> {
+fn parse_size(mut src: &[u8], mode: RoundMode) -> Result<u64, ParseError> {
     // trim starting and trailing spaces
     while let [b' ', init @ ..] = src {
         src = init;
@@ -279,26 +266,26 @@ fn parse_size<const TRACK_TRAILING_NONZERO: bool>(
     if let Some(start) = fraction_start {
         // Multiply the fraction by the unit multiplier from right to left in base 10.
         // Once all fractional digits are consumed, carry is the integral byte count and
-        // the last remainder digit determines rounding to the nearest byte.
+        // the last remainder digit is the first discarded decimal digit. The sticky bit records
+        // whether any lower discarded digit is nonzero, which distinguishes an exact tie from a
+        // value just above it.
         debug_assert!(multiplier <= u64::MAX / 10);
         let mut carry = 0u64;
         let mut rounding_digit = 0u64;
-        let mut trailing_nonzero = false;
+        let mut sticky_bit = false;
         for b in src[start..].iter().copied().rev() {
             if b == b'_' {
                 continue;
             }
 
             let product = u64::from(b - b'0') * multiplier + carry;
-            if TRACK_TRAILING_NONZERO {
-                trailing_nonzero |= rounding_digit != 0;
-            }
+            sticky_bit |= rounding_digit != 0;
             rounding_digit = product % 10;
             carry = product / 10;
         }
 
         bytes = bytes.checked_add(carry).ok_or(ParseError::Overflow)?;
-        let round_up = should_round_up(mode, bytes, rounding_digit, trailing_nonzero);
+        let round_up = should_round_up(mode, bytes, rounding_digit, sticky_bit);
         bytes = bytes
             .checked_add(u64::from(round_up))
             .ok_or(ParseError::Overflow)?;
@@ -307,15 +294,10 @@ fn parse_size<const TRACK_TRAILING_NONZERO: bool>(
     Ok(bytes)
 }
 
-fn should_round_up(
-    mode: RoundMode,
-    lower: u64,
-    rounding_digit: u64,
-    trailing_nonzero: bool,
-) -> bool {
-    let has_remainder = rounding_digit != 0 || trailing_nonzero;
-    let greater_than_half = rounding_digit > 5 || (rounding_digit == 5 && trailing_nonzero);
-    let tie = rounding_digit == 5 && !trailing_nonzero;
+fn should_round_up(mode: RoundMode, lower: u64, rounding_digit: u64, sticky_bit: bool) -> bool {
+    let has_remainder = rounding_digit != 0 || sticky_bit;
+    let greater_than_half = rounding_digit > 5 || (rounding_digit == 5 && sticky_bit);
+    let tie = rounding_digit == 5 && !sticky_bit;
 
     match mode {
         RoundMode::Ceil => has_remainder,
