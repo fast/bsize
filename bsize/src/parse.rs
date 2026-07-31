@@ -266,26 +266,26 @@ fn parse_size(mut src: &[u8], mode: RoundMode) -> Result<u64, ParseError> {
     if let Some(start) = fraction_start {
         // Multiply the fraction by the unit multiplier from right to left in base 10.
         // Once all fractional digits are consumed, carry is the integral byte count and
-        // the last remainder digit is the first discarded decimal digit. The sticky bit records
-        // whether any lower discarded digit is nonzero, which distinguishes an exact tie from a
-        // value just above it.
+        // the last remainder digit is the first discarded decimal digit. A later nonzero digit
+        // determines whether a leading 5 is exactly half or greater than half.
         debug_assert!(multiplier <= u64::MAX / 10);
         let mut carry = 0u64;
-        let mut rounding_digit = 0u64;
-        let mut sticky_bit = false;
+        let mut first_discarded_digit = 0u64;
+        let mut has_nonzero_later_digits = false;
         for b in src[start..].iter().copied().rev() {
             if b == b'_' {
                 continue;
             }
 
             let product = u64::from(b - b'0') * multiplier + carry;
-            sticky_bit |= rounding_digit != 0;
-            rounding_digit = product % 10;
+            has_nonzero_later_digits |= first_discarded_digit != 0;
+            first_discarded_digit = product % 10;
             carry = product / 10;
         }
 
         bytes = bytes.checked_add(carry).ok_or(ParseError::Overflow)?;
-        let round_up = should_round_up(mode, bytes, rounding_digit, sticky_bit);
+        let round_up =
+            should_round_up(mode, bytes, first_discarded_digit, has_nonzero_later_digits);
         bytes = bytes
             .checked_add(u64::from(round_up))
             .ok_or(ParseError::Overflow)?;
@@ -294,17 +294,23 @@ fn parse_size(mut src: &[u8], mode: RoundMode) -> Result<u64, ParseError> {
     Ok(bytes)
 }
 
-fn should_round_up(mode: RoundMode, lower: u64, rounding_digit: u64, sticky_bit: bool) -> bool {
-    let has_remainder = rounding_digit != 0 || sticky_bit;
-    let greater_than_half = rounding_digit > 5 || (rounding_digit == 5 && sticky_bit);
-    let tie = rounding_digit == 5 && !sticky_bit;
+fn should_round_up(
+    mode: RoundMode,
+    whole_bytes: u64,
+    first_discarded_digit: u64,
+    has_nonzero_later_digits: bool,
+) -> bool {
+    let has_fractional_remainder = first_discarded_digit != 0 || has_nonzero_later_digits;
+    let is_greater_than_half =
+        first_discarded_digit > 5 || (first_discarded_digit == 5 && has_nonzero_later_digits);
+    let is_exactly_half = first_discarded_digit == 5 && !has_nonzero_later_digits;
 
     match mode {
-        RoundMode::Ceil => has_remainder,
+        RoundMode::Ceil => has_fractional_remainder,
         RoundMode::Floor => false,
-        RoundMode::HalfCeil => greater_than_half || tie,
-        RoundMode::HalfFloor => greater_than_half,
-        RoundMode::HalfEven => greater_than_half || (tie && lower % 2 == 1),
+        RoundMode::HalfCeil => is_greater_than_half || is_exactly_half,
+        RoundMode::HalfFloor => is_greater_than_half,
+        RoundMode::HalfEven => is_greater_than_half || (is_exactly_half && whole_bytes % 2 == 1),
     }
 }
 
