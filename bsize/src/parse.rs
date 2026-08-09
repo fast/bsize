@@ -143,9 +143,7 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         return Err(ParseError::Empty);
     }
 
-    let mut bytes = integer
-        .checked_mul(multiplier)
-        .ok_or(ParseError::Overflow)?;
+    let integer_bytes = integer.checked_mul(multiplier);
 
     if let Some(start) = fraction_start {
         // Multiply the fraction by the unit multiplier from right to left in base 10.
@@ -166,11 +164,14 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
             }
         }
 
+        let mut bytes = integer_bytes.ok_or(ParseError::Overflow)?;
         let fraction = carry + u64::from(rounding_digit >= 5);
         bytes = bytes.checked_add(fraction).ok_or(ParseError::Overflow)?;
+
+        return Ok(bytes);
     }
 
-    Ok(bytes)
+    integer_bytes.ok_or(ParseError::Overflow)
 }
 
 #[cfg(test)]
@@ -278,6 +279,7 @@ mod tests {
             "1 000 B",
             "1.3 42.0 B",
             "1.3 ... B",
+            "19.aE",
             "IB",
             "iB",
             "1iB",
