@@ -12,10 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::iter;
+
+use crate::ByteSize;
+use crate::traits::BaseByteSize;
+
 #[cfg(feature = "nightly")]
 mod nightly;
 #[cfg(not(feature = "nightly"))]
 mod stable;
+
+impl<T> iter::Sum for ByteSize<T>
+where
+    T: BaseByteSize + iter::Sum,
+{
+    #[inline(always)]
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        ByteSize(iter.map(ByteSize::bytes).sum())
+    }
+}
+
+impl<'a, T> iter::Sum<&'a ByteSize<T>> for ByteSize<T>
+where
+    T: BaseByteSize + iter::Sum,
+{
+    #[inline(always)]
+    fn sum<I: Iterator<Item = &'a ByteSize<T>>>(iter: I) -> Self {
+        iter.copied().sum()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -55,5 +80,17 @@ mod tests {
         let mut size = BSize::b(8);
         size -= BSize::b(5);
         assert_eq!(size.bytes(), 3);
+    }
+
+    #[test]
+    fn sums_byte_sizes() {
+        let sizes = [BSize64::b(3), BSize64::b(5), BSize64::b(8)];
+
+        assert_eq!(sizes.into_iter().sum::<BSize64>(), BSize64::b(16));
+        assert_eq!(sizes.iter().sum::<BSize64>(), BSize64::b(16));
+        assert_eq!(
+            core::iter::empty::<BSize64>().sum::<BSize64>(),
+            BSize64::b(0)
+        );
     }
 }

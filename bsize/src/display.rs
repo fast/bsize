@@ -18,18 +18,21 @@ use core::fmt::Write as _;
 use crate::BaseByteSize;
 use crate::ByteSize;
 
-/// Create a [`Display`] instance for displaying a byte size.
+/// Create a [`Display`] instance for approximate, human-readable formatting.
 ///
-/// See [`Display`] for examples. Use [`Display::new`] when the byte count is already represented
-/// as an `f64`.
+/// The integer byte count is converted to `f64` before scaling and formatting. See [`Display`] for
+/// the precision contract and examples. Use [`Display::new`] when the byte count is already
+/// represented as an `f64`.
 pub fn display(size: impl BaseByteSize) -> Display {
     Display::new(size.to_f64())
 }
 
 impl<T: BaseByteSize> ByteSize<T> {
-    /// Returns a [`Display`] wrapper.
+    /// Returns a [`Display`] wrapper for approximate, human-readable formatting.
     ///
-    /// See [`Display`] for examples.
+    /// The underlying integer byte count is converted to `f64` before scaling and formatting. Use
+    /// this type's standard [`fmt::Display`] implementation when an exact base-byte representation
+    /// is required. See [`Display`] for the full precision contract and examples.
     pub fn display(&self) -> Display {
         Display::new(self.bytes().to_f64())
     }
@@ -39,6 +42,22 @@ impl<T: BaseByteSize> ByteSize<T> {
 ///
 /// You may create this wrapper with [`Display::new`], [`display`], or [`ByteSize::display`], then
 /// pass custom [`DisplayOptions`] with [`Display::options`].
+///
+/// # Precision and round trips
+///
+/// This wrapper is intended for approximate presentation, not exact serialization. Values are
+/// stored, scaled, and formatted as `f64`. Integer byte counts supplied through [`display`] or
+/// [`ByteSize::display`] are converted to `f64` first, so sufficiently large integers may lose
+/// precision. Automatic scale selection also observes the converted value and can therefore cross
+/// a scale boundary when conversion rounds an integer upward.
+///
+/// Formatter precision controls only the number of displayed fractional digits; it cannot recover
+/// precision lost during conversion to `f64`. Output from this wrapper is not guaranteed to parse
+/// back to the original byte count. Use [`ByteSize`]'s standard [`fmt::Display`] implementation for
+/// an exact, round-trippable base-byte representation.
+///
+/// Without an explicit formatter precision, values in the base scale use the default `f64`
+/// representation and values with a unit prefix use one fractional digit.
 ///
 /// # Examples
 ///
@@ -312,10 +331,13 @@ impl Display {
         self
     }
 
-    /// Create a [`Display`] instance from a byte count.
+    /// Create a [`Display`] instance from an approximate byte count.
     ///
     /// This constructor is useful when the byte count is already represented as an `f64`. For
-    /// supported integer byte counts, use [`display`] or [`ByteSize::display`].
+    /// supported integer byte counts, use [`display`] or [`ByteSize::display`]. The wrapper follows
+    /// `f64` precision semantics and is intended for presentation rather than exact serialization.
+    /// Positive infinity is accepted and uses the largest available unit prefix when the scale is
+    /// selected automatically.
     ///
     /// # Examples
     ///
