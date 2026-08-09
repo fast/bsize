@@ -125,16 +125,15 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         match b {
             b'0'..=b'9' => {
                 saw_digit = true;
-                if fraction_start.is_none() {
-                    integer = integer
-                        .checked_mul(10)
-                        .and_then(|v| v.checked_add(u64::from(b - b'0')))
-                        .ok_or(ParseError::Overflow)?;
-                }
+                integer = integer
+                    .checked_mul(10)
+                    .and_then(|v| v.checked_add(u64::from(b - b'0')))
+                    .ok_or(ParseError::Overflow)?;
             }
             b'_' => {}
-            b'.' if saw_digit && fraction_start.is_none() => {
+            b'.' if saw_digit => {
                 fraction_start = Some(index + 1);
+                break;
             }
             _ => return Err(ParseError::Malformed),
         }
@@ -144,9 +143,7 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         return Err(ParseError::Empty);
     }
 
-    let mut bytes = integer
-        .checked_mul(multiplier)
-        .ok_or(ParseError::Overflow)?;
+    let integer_bytes = integer.checked_mul(multiplier);
 
     if let Some(start) = fraction_start {
         // Multiply the fraction by the unit multiplier from right to left in base 10.
@@ -156,20 +153,25 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
         let mut carry = 0u64;
         let mut rounding_digit = 0u64;
         for b in src[start..].iter().copied().rev() {
-            if b == b'_' {
-                continue;
+            match b {
+                b'0'..=b'9' => {
+                    let product = u64::from(b - b'0') * multiplier + carry;
+                    rounding_digit = product % 10;
+                    carry = product / 10;
+                }
+                b'_' => {}
+                _ => return Err(ParseError::Malformed),
             }
-
-            let product = u64::from(b - b'0') * multiplier + carry;
-            rounding_digit = product % 10;
-            carry = product / 10;
         }
 
+        let mut bytes = integer_bytes.ok_or(ParseError::Overflow)?;
         let fraction = carry + u64::from(rounding_digit >= 5);
         bytes = bytes.checked_add(fraction).ok_or(ParseError::Overflow)?;
+
+        return Ok(bytes);
     }
 
-    Ok(bytes)
+    integer_bytes.ok_or(ParseError::Overflow)
 }
 
 #[cfg(test)]
@@ -277,6 +279,7 @@ mod tests {
             "1 000 B",
             "1.3 42.0 B",
             "1.3 ... B",
+            "19.aE",
             "IB",
             "iB",
             "1iB",
