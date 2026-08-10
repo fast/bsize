@@ -53,5 +53,9 @@ toml = { version = "1.1.2" }
 harness = false
 name = "parse"
 
+[[bench]]
+harness = false
+name = "parse_with"
+
 [lints]
 workspace = true
