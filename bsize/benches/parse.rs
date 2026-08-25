@@ -33,7 +33,7 @@ const fn case(name: &'static str, input: &'static str) -> ParseCase {
     ParseCase { name, input }
 }
 
-const CASES: [ParseCase; 10] = [
+const CASES: [ParseCase; 12] = [
     case("plain", "42"),
     case("decimal-unit", "42 MB"),
     case("binary-unit", "1 KiB"),
@@ -43,8 +43,24 @@ const CASES: [ParseCase; 10] = [
     case("u64-max", "18_446_744_073_709_551_615"),
     case("high-precision-decimal", "1.84467440737095516145 EB"),
     case(
+        "excess-precision-decimal",
+        concat!(
+            "1.84467440737095516145",
+            "0000000000000000000000000000000000000000000000000000000000000000",
+            "0000000000000000000000000000000000000000000000000000000000000000 EB",
+        ),
+    ),
+    case(
         "high-precision-binary",
         "0.0000000000000000004336808689942017736029811203479766845703125 EiB",
+    ),
+    case(
+        "excess-precision-binary",
+        concat!(
+            "0.0000000000000000004336808689942017736029811203479766845703125",
+            "0000000000000000000000000000000000000000000000000000000000000000",
+            "0000000000000000000000000000000000000000000000000000000000000000 EiB",
+        ),
     ),
     case("malformed", "not-a-size"),
 ];
