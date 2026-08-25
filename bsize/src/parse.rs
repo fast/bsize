@@ -49,13 +49,7 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
 
         #[inline]
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            let src = s.as_bytes();
-            let size = if src.len() <= MAX_RELEVANT_FRACTION_DIGITS {
-                parse_size::<false>(src)?
-            } else {
-                parse_long_size(src)?
-            };
-            bsize_from_u64(size)
+            bsize_from_u64(parse_size(s.as_bytes())?)
         }
     }
 });
@@ -71,19 +65,10 @@ where
 
 // Half-ceil transitions occur at (2n + 1) / (2 * multiplier). Supported multipliers factor only
 // into 2s and 5s, so every transition terminates in decimal; 2^60 is the worst case at 61 digits.
-// Keeping shorter inputs on the general path avoids adding dispatch overhead to normal parsing.
 const MAX_RELEVANT_FRACTION_DIGITS: usize = 61;
 
-// Keep the uncommon long-input code out of the monomorphization used by normal size strings. This
-// preserves the original parser's code generation while allowing `FromStr` to inline the dispatch.
-#[cold]
-#[inline(never)]
-fn parse_long_size(src: &[u8]) -> Result<u64, ParseError> {
-    parse_size::<true>(src)
-}
-
 #[inline]
-fn parse_size<const LIMIT_LONG_FRACTION: bool>(mut src: &[u8]) -> Result<u64, ParseError> {
+fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
     // trim starting and trailing spaces
     while let [b' ', init @ ..] = src {
         src = init;
@@ -168,9 +153,11 @@ fn parse_size<const LIMIT_LONG_FRACTION: bool>(mut src: &[u8]) -> Result<u64, Pa
 
     if let Some(start) = fraction_start {
         let fraction = &src[start..];
-        if LIMIT_LONG_FRACTION && fraction.len() > MAX_RELEVANT_FRACTION_DIGITS {
-            return parse_long_fraction(fraction, multiplier, integer_bytes);
-        }
+        let fraction = if fraction.len() > MAX_RELEVANT_FRACTION_DIGITS {
+            relevant_fraction_prefix(fraction, multiplier)?
+        } else {
+            fraction
+        };
 
         // Multiply the fraction by the unit multiplier from right to left in base 10.
         // Once all digits are consumed, carry is the integral byte count and the last remainder
@@ -200,16 +187,10 @@ fn parse_size<const LIMIT_LONG_FRACTION: bool>(mut src: &[u8]) -> Result<u64, Pa
     integer_bytes.ok_or(ParseError::Overflow)
 }
 
-#[cold]
-#[inline(never)]
-fn parse_long_fraction(
-    src: &[u8],
-    multiplier: u64,
-    integer_bytes: Option<u64>,
-) -> Result<u64, ParseError> {
+fn relevant_fraction_prefix(src: &[u8], multiplier: u64) -> Result<&[u8], ParseError> {
     // A half-byte boundary has a terminating decimal representation for every supported unit.
     // Digits after that representation cannot change half-ceil rounding, so validate them without
-    // including them in the multiplication loop.
+    // including them in the multiplication loop below.
     let relevant_digits = if multiplier == 1 || !multiplier.is_power_of_two() {
         multiplier.ilog10() as usize + 1
     } else {
@@ -229,26 +210,7 @@ fn parse_long_fraction(
             _ => return Err(ParseError::Malformed),
         }
     }
-
-    debug_assert!(multiplier <= u64::MAX / 10);
-    let mut carry = 0u64;
-    let mut rounding_digit = 0u64;
-    for b in src[..end].iter().copied().rev() {
-        match b {
-            b'0'..=b'9' => {
-                let product = u64::from(b - b'0') * multiplier + carry;
-                rounding_digit = product % 10;
-                carry = product / 10;
-            }
-            b'_' => {}
-            _ => unreachable!(),
-        }
-    }
-
-    let mut bytes = integer_bytes.ok_or(ParseError::Overflow)?;
-    let fraction = carry + u64::from(rounding_digit >= 5);
-    bytes = bytes.checked_add(fraction).ok_or(ParseError::Overflow)?;
-    Ok(bytes)
+    Ok(&src[..end])
 }
 
 #[cfg(test)]
