@@ -8,6 +8,10 @@ All significant changes to this software be documented in this file.
 
 * Parse arbitrarily precise fractional byte sizes without double rounding or false overflow.
 
+### Performance
+
+* Bound arithmetic work when parsing long fractional byte sizes while preserving exact rounding.
+
 ## v0.3.0 (2026-06-28)
 
 ### Breaking changes

@@ -47,6 +47,7 @@ macroweave::repeat!(Ty in [u8, u16, u32, u64, usize] {
     impl FromStr for ByteSize<Ty> {
         type Err = ParseError;
 
+        #[inline]
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             bsize_from_u64(parse_size(s.as_bytes())?)
         }
@@ -62,6 +63,11 @@ where
         .map_err(|_| ParseError::Overflow)
 }
 
+// Half-ceil transitions occur at (2n + 1) / (2 * multiplier). Supported multipliers factor only
+// into 2s and 5s, so every transition terminates in decimal; 2^60 is the worst case at 61 digits.
+const MAX_RELEVANT_FRACTION_DIGITS: usize = 61;
+
+#[inline]
 fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
     // trim starting and trailing spaces
     while let [b' ', init @ ..] = src {
@@ -146,13 +152,20 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
     let integer_bytes = integer.checked_mul(multiplier);
 
     if let Some(start) = fraction_start {
+        let fraction = &src[start..];
+        let fraction = if fraction.len() > MAX_RELEVANT_FRACTION_DIGITS {
+            relevant_fraction_prefix(fraction, multiplier)?
+        } else {
+            fraction
+        };
+
         // Multiply the fraction by the unit multiplier from right to left in base 10.
-        // Once all fractional digits are consumed, carry is the integral byte count and
-        // the last remainder digit determines rounding to the nearest byte.
+        // Once all digits are consumed, carry is the integral byte count and the last remainder
+        // digit determines rounding to the nearest byte.
         debug_assert!(multiplier <= u64::MAX / 10);
         let mut carry = 0u64;
         let mut rounding_digit = 0u64;
-        for b in src[start..].iter().copied().rev() {
+        for b in fraction.iter().copied().rev() {
             match b {
                 b'0'..=b'9' => {
                     let product = u64::from(b - b'0') * multiplier + carry;
@@ -174,9 +187,36 @@ fn parse_size(mut src: &[u8]) -> Result<u64, ParseError> {
     integer_bytes.ok_or(ParseError::Overflow)
 }
 
+fn relevant_fraction_prefix(src: &[u8], multiplier: u64) -> Result<&[u8], ParseError> {
+    // A half-byte boundary has a terminating decimal representation for every supported unit.
+    // Digits after that representation cannot change half-ceil rounding, so validate them without
+    // including them in the multiplication loop below.
+    let relevant_digits = if multiplier == 1 || !multiplier.is_power_of_two() {
+        multiplier.ilog10() as usize + 1
+    } else {
+        multiplier.ilog2() as usize + 1
+    };
+    let mut digits = 0usize;
+    let mut end = src.len();
+    for (index, b) in src.iter().copied().enumerate() {
+        match b {
+            b'0'..=b'9' => {
+                digits += 1;
+                if digits == relevant_digits {
+                    end = index + 1;
+                }
+            }
+            b'_' => {}
+            _ => return Err(ParseError::Malformed),
+        }
+    }
+    Ok(&src[..end])
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::format;
+    use alloc::string::String;
     use alloc::string::ToString;
 
     use super::*;
@@ -280,6 +320,14 @@ mod tests {
             "1.3 42.0 B",
             "1.3 ... B",
             "19.aE",
+            concat!(
+                "1.0000000000000000000000000000000000000000000000000000000000000000",
+                "x EB",
+            ),
+            concat!(
+                "0.0004882812500000000000000000000000000000000000000000000000000000",
+                "x KiB",
+            ),
             "IB",
             "iB",
             "1iB",
@@ -312,7 +360,79 @@ mod tests {
         assert_eq!("4GiB".parse::<ByteSize<u32>>(), Err(ParseError::Overflow));
     }
 
+    #[test]
+    fn ignores_fractional_digits_that_cannot_affect_half_ceil() {
+        assert_parse_ok("0.499999999999999999999999999999 B", 0);
+        assert_parse_ok("0.500000000000000000000000000001 B", 1);
+        assert_parse_ok("0.000488281249999999999999999999 KiB", 0);
+        assert_parse_ok("0.000488281250000000000000000001 KiB", 1);
+        assert_parse_ok(
+            "0.000000000000000000433680868994201773602981120347976684570312499999999 EiB",
+            0,
+        );
+        assert_parse_ok(
+            "0.000000000000000000433680868994201773602981120347976684570312500000001 EiB",
+            1,
+        );
+    }
+
+    fn scale_fraction_reference(src: &[u8], multiplier: u64) -> u64 {
+        let mut carry = 0u64;
+        let mut rounding_digit = 0u64;
+        for b in src.iter().copied().rev() {
+            match b {
+                b'0'..=b'9' => {
+                    let product = u64::from(b - b'0') * multiplier + carry;
+                    rounding_digit = product % 10;
+                    carry = product / 10;
+                }
+                b'_' => {}
+                _ => unreachable!(),
+            }
+        }
+        carry + u64::from(rounding_digit >= 5)
+    }
+
     quickcheck::quickcheck! {
+        fn long_fractions_match_full_precision_reference(
+            unit_index: u8,
+            digits: alloc::vec::Vec<u8>
+        ) -> bool {
+            const UNITS: [(&str, u64); 13] = [
+                ("B", 1),
+                ("kB", 1_000),
+                ("MB", 1_000_000),
+                ("GB", 1_000_000_000),
+                ("TB", 1_000_000_000_000),
+                ("PB", 1_000_000_000_000_000),
+                ("EB", 1_000_000_000_000_000_000),
+                ("KiB", 1 << 10),
+                ("MiB", 1 << 20),
+                ("GiB", 1 << 30),
+                ("TiB", 1 << 40),
+                ("PiB", 1 << 50),
+                ("EiB", 1 << 60),
+            ];
+
+            let (unit, multiplier) = UNITS[usize::from(unit_index) % UNITS.len()];
+            let mut fraction = String::with_capacity(146);
+            for index in 0..128 {
+                if index > 0 && index % 7 == 0 {
+                    fraction.push('_');
+                }
+                let digit = digits
+                    .get(index % digits.len().max(1))
+                    .copied()
+                    .unwrap_or(index as u8)
+                    % 10;
+                fraction.push(char::from(b'0' + digit));
+            }
+
+            let expected = scale_fraction_reference(fraction.as_bytes(), multiplier);
+            let input = format!("0.{fraction} {unit}");
+            input.parse::<ByteSize<u64>>() == Ok(ByteSize::b(expected))
+        }
+
         fn parses_eib_fractions_exactly(whole: u8, fraction: u64) -> bool {
             const MULTIPLIER: u128 = 1 << 60;
             const SCALE: u128 = 1_000_000_000_000_000_000;
